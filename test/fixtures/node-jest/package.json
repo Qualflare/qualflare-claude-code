@@ -1,5 +1,0 @@
-{
-  "name": "sample-node-jest",
-  "dependencies": { "react": "^18.0.0" },
-  "devDependencies": { "jest": "^29.0.0", "@playwright/test": "^1.40.0" }
-}

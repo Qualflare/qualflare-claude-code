@@ -1,6 +1,0 @@
-[tool.poetry]
-name = "sample-python"
-version = "0.1.0"
-
-[tool.poetry.dev-dependencies]
-pytest = "^8.0.0"
