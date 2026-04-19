@@ -74,6 +74,13 @@ export function isFrameworkSlug(s: string): s is FrameworkSlug {
 // slug for upload purposes (or null if there is no reasonable mapping).
 // ---------------------------------------------------------------------------
 
+interface DetectableExtra {
+  readonly name: string
+  readonly language: string
+  readonly nearestSlug: FrameworkSlug | null
+  readonly note: string
+}
+
 export const DETECTABLE_EXTRAS = [
   {
     name: 'vitest',
@@ -87,4 +94,4 @@ export const DETECTABLE_EXTRAS = [
     nearestSlug: null,
     note: 'Rust built-in test runner; no direct Qualflare upload support yet',
   },
-] as const
+] as const satisfies readonly DetectableExtra[]
