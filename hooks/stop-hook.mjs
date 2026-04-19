@@ -33,7 +33,7 @@ try {
     }
   }
 
-  // 4. Classify — keep source files, discard test files and excluded dirs
+  // 4. Classify — split into source files and test-edited flag
   const SOURCE_EXT = /\.(?:[mc]?[jt]sx?|go|py|rb|php|rs|java|kt)$/;
   const TEST_PATTERNS = [
     /\.test\.[mc]?[jt]sx?$/,
@@ -53,15 +53,20 @@ try {
     '.next', '__pycache__', '.cache',
   ];
 
-  const sourcePaths = [...paths].filter(p => {
-    if (!SOURCE_EXT.test(p)) return false;
-    if (TEST_PATTERNS.some(re => re.test(p))) return false;
-    if (EXCLUDE_DIRS.some(d => p.includes(`/${d}/`) || p.includes(`\\${d}\\`))) return false;
-    return true;
-  });
+  const allPaths = [...paths].filter(p =>
+    !EXCLUDE_DIRS.some(d => p.includes(`/${d}/`) || p.includes(`\\${d}\\`))
+  );
 
-  // 5 & 6. Print suggestion if any source files were changed
-  if (sourcePaths.length > 0) {
+  const sourcePaths = allPaths.filter(p =>
+    SOURCE_EXT.test(p) && !TEST_PATTERNS.some(re => re.test(p))
+  );
+
+  const testEdited = allPaths.some(p =>
+    SOURCE_EXT.test(p) && TEST_PATTERNS.some(re => re.test(p))
+  );
+
+  // 5 & 6. Print suggestion only if source files changed AND no test files were also edited
+  if (sourcePaths.length > 0 && !testEdited) {
     console.log(JSON.stringify({
       systemMessage: `🔍 Qualflare: ${sourcePaths.length} source file(s) changed without test updates. Run /qualflare-cover to add coverage.`,
     }));

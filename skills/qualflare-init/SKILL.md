@@ -26,7 +26,7 @@ Check whether the current working directory (`$CLAUDE_PROJECT_DIR`) contains at 
 - `pom.xml`
 - `build.gradle`
 
-Use the Read tool (or Bash with `ls`) to check for these files. If **none** of them is present, stop and tell the user:
+Use the Read tool to check for these files. If **none** of them is present, stop and tell the user:
 
 > "I couldn't find a recognizable project root in the current directory. Please `cd` to your project root and run `/qualflare-init` again."
 

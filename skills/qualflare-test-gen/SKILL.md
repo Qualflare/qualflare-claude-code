@@ -149,7 +149,7 @@ Use the naming convention from `.qualflare/test-state.md` (`## Conventions → T
 **Framework selection:**
 Choose the framework based on the slugs extracted in Step 1 and the source file's language:
 
-- **`jest` or `vitest`** (TypeScript/JavaScript): Write using `describe`/`it`/`expect` blocks. Use ES module imports (`import { ... } from '../<source>.js'`). For TypeScript, preserve types in assertions. If `vitest` is the detected runner, import from `vitest` rather than `@jest/globals`.
+- **`jest`** (TypeScript/JavaScript): Write using `describe`/`it`/`expect` syntax. If the project uses vitest (check for `vitest` in `package.json` devDependencies), import from `vitest` instead of `@jest/globals`. Otherwise use jest imports. Use ES module imports (`import { ... } from '../<source>.js'`). For TypeScript, preserve types in assertions.
 - **`playwright`** (TypeScript/JavaScript, E2E): Write using `test`/`expect` blocks with `@playwright/test` imports. Only generate Playwright tests if the source file is clearly a page/component, not a utility.
 - **`pytest`** (Python): Write using `def test_<name>():` functions. Group related tests in a class prefixed with `Test`. Import the module under test at the top.
 - **`golang`** (Go): Write using `func Test<Name>(t *testing.T)` functions inside a `_test` package. Import `testing` and the package under test.

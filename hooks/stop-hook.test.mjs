@@ -109,7 +109,7 @@ test('Test 3: Go test file (_test.go) is excluded', () => {
   }
 });
 
-test('Test 4: mixed source + test file — only source counts', () => {
+test('Test 4: source + test file both edited — no nudge (tests were updated)', () => {
   const { projectDir, transcriptPath, cleanup } = makeWorkspace();
   try {
     writeConfig(projectDir, { stopHookEnabled: true });
@@ -117,9 +117,8 @@ test('Test 4: mixed source + test file — only source counts', () => {
       { name: 'Edit', filePath: 'src/foo.ts' },
       { name: 'Edit', filePath: 'src/foo.test.ts' },
     ]);
-    const { parsed } = runHook({ transcriptPath, projectDir });
-    assert.ok(parsed?.systemMessage, 'Expected a systemMessage in stdout');
-    assert.match(parsed.systemMessage, /1 source file\(s\)/);
+    const { stdout } = runHook({ transcriptPath, projectDir });
+    assert.equal(stdout, '', 'Expected empty stdout when both source and test files were edited');
   } finally {
     cleanup();
   }
@@ -162,7 +161,7 @@ test('Test 7: empty transcript — no output', () => {
   }
 });
 
-test('Test 8: multiple source files count correctly', () => {
+test('Test 8: multiple source files with a test file also edited — no nudge', () => {
   const { projectDir, transcriptPath, cleanup } = makeWorkspace();
   try {
     writeConfig(projectDir, { stopHookEnabled: true });
@@ -172,9 +171,8 @@ test('Test 8: multiple source files count correctly', () => {
       { name: 'Write', filePath: 'src/c.go' },
       { name: 'Edit', filePath: 'src/a.test.ts' },
     ]);
-    const { parsed } = runHook({ transcriptPath, projectDir });
-    assert.ok(parsed?.systemMessage, 'Expected a systemMessage in stdout');
-    assert.match(parsed.systemMessage, /3 source file\(s\)/);
+    const { stdout } = runHook({ transcriptPath, projectDir });
+    assert.equal(stdout, '', 'Expected empty stdout when test file was also edited alongside source files');
   } finally {
     cleanup();
   }
@@ -187,6 +185,21 @@ test('Test 9: Python test_*.py file is excluded', () => {
     writeTranscript(transcriptPath, [{ name: 'Edit', filePath: 'src/test_auth.py' }]);
     const { stdout } = runHook({ transcriptPath, projectDir });
     assert.equal(stdout, '', 'Expected empty stdout when only test_*.py file edited');
+  } finally {
+    cleanup();
+  }
+});
+
+test('Test 10: source file AND test file both edited — no nudge', () => {
+  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
+  try {
+    writeConfig(projectDir, { stopHookEnabled: true });
+    writeTranscript(transcriptPath, [
+      { name: 'Edit', filePath: 'src/foo.ts' },
+      { name: 'Edit', filePath: 'src/foo.test.ts' },
+    ]);
+    const { stdout } = runHook({ transcriptPath, projectDir });
+    assert.equal(stdout, '', 'Expected empty stdout when tests were also updated alongside source files');
   } finally {
     cleanup();
   }

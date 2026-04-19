@@ -4,7 +4,7 @@ description: >
   Run the project's test suite and upload results to Qualflare. Use when the
   user runs /qualflare-run, asks to "run tests and report", asks to "run tests
   and upload", or explicitly invokes this skill after writing tests.
-allowed-tools: Read Bash(qf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(rspec:*) Bash(phpunit:*)
+allowed-tools: Read Bash(qf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
 ---
 
 ## Step 1 — Read test state
@@ -31,9 +31,9 @@ For each detected framework slug, run the appropriate command below to produce a
 | Slug | Command | Output file |
 |------|---------|-------------|
 | jest | `npx jest --json --outputFile=qualflare-results.json` | `qualflare-results.json` |
-| vitest | `npx vitest run --reporter=junit --outputFile=qualflare-results.xml` | `qualflare-results.xml` |
+| vitest | Not a stored slug — vitest projects use the `jest` slug. Run: `npx vitest run --reporter=junit --outputFile=qualflare-results.xml` and upload under slug `jest`. | `qualflare-results.xml` |
 | mocha | `npx mocha --reporter xunit > qualflare-results.xml` | `qualflare-results.xml` |
-| pytest | `python -m pytest --junit-xml=qualflare-results.xml` | `qualflare-results.xml` |
+| pytest | `pytest --junit-xml=qualflare-results.xml`  (or: `python -m pytest --junit-xml=qualflare-results.xml` in virtualenv) | `qualflare-results.xml` |
 | golang | `go test ./... -json > qualflare-results.json` | `qualflare-results.json` |
 | playwright | `npx playwright test --reporter=junit --output-file=qualflare-results.xml` | `qualflare-results.xml` |
 | cypress | `npx cypress run --reporter junit --reporter-options mochaFile=qualflare-results.xml` | `qualflare-results.xml` |
