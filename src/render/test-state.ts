@@ -41,9 +41,16 @@ function categoryForSlug(slug: string): FrameworkCategory {
 
 /**
  * Look up the language for a slug from the stackResult detectors array.
- * Finds the first detector whose frameworks list contains the slug.
+ * Prefers matched detectors to avoid attributing shared slugs (e.g. 'cucumber') to the wrong language.
  */
 function languageForSlug(slug: string, stackResult: StackResult): string {
+  // Pass 1: only matched detectors (avoids attributing shared slugs like 'cucumber' to wrong language)
+  for (const detector of stackResult.detectors) {
+    if (detector.matched && detector.frameworks.some((fw) => fw.slug === slug)) {
+      return detector.language
+    }
+  }
+  // Pass 2: any detector (fallback for unusual configs)
   for (const detector of stackResult.detectors) {
     if (detector.frameworks.some((fw) => fw.slug === slug)) {
       return detector.language
@@ -86,7 +93,9 @@ export function renderTestState(input: TestStateInput): string {
       const language = languageForSlug(slug, stackResult)
       const tf = testFileMap.get(slug)
       const count = tf && tf.count > 0 ? String(tf.count) : '—'
-      const topDirs = tf && tf.topDirs.length > 0 ? tf.topDirs.join(', ') : '—'
+      const topDirs = tf && tf.topDirs.length > 0
+        ? tf.topDirs.map((p) => p.replace(/\|/g, '\\|')).join(', ')
+        : '—'
       return `| ${slug} | ${category} | ${language} | ${count} | ${topDirs} |`
     })
     .join('\n')
@@ -102,7 +111,8 @@ export function renderTestState(input: TestStateInput): string {
       : '- None detected'
 
   // Notes block
-  const notesBlock = userNotes.trim() || '(none)'
+  const safeNotes = userNotes.replace(/-->/g, '--\\>').trim()
+  const notesBlock = safeNotes || '(none)'
 
   // Workspace / project slugs
   const workspaceDisplay = qualflareWorkspaceSlug ?? 'unset — run `qf login`'
