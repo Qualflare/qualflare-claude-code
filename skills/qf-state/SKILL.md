@@ -5,7 +5,7 @@ description: >
   counts, hook setting, and last upload info. Use when the user runs
   /qf-state, asks "what does Qualflare know about this project?", or
   asks about their current Qualflare setup.
-allowed-tools: Read Bash(qf:*)
+allowed-tools: Read Glob Bash(qf:*)
 ---
 
 ## Step 1 — Read state files
@@ -25,7 +25,9 @@ If `config.json` does not exist, treat the hook as "not configured" and note it 
 
 ## Step 2 — Display state
 
-Print a tidy summary using information from the state files. Use this format:
+For each framework slug listed in `test-state.md`, use `Glob` to re-count test files live using the glob patterns from the framework-slugs reference (stored at `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`). Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
+
+Print a tidy summary. Use this format:
 
 ```
 Qualflare State
@@ -34,7 +36,7 @@ Project: <name from test-state.md>
 Generated: <timestamp from test-state.md>
 
 Frameworks in use:
-  jest          — 42 test files (src/**/*.test.ts)
+  jest          — 44 test files (src/**/*.test.ts)  [was 42 at init]
   playwright    — 18 test files (e2e/**/*.spec.ts)
 
 Frameworks suggested:
@@ -52,7 +54,7 @@ Qualflare backend: not connected (run `qf login`)
 Field guidance:
 - **Project**: the project name from `test-state.md`.
 - **Generated**: the timestamp recorded when `test-state.md` was last written.
-- **Frameworks in use**: list each detected framework with its test file count and glob pattern, as recorded in `test-state.md`. If counts are not recorded, omit them.
+- **Frameworks in use**: list each detected framework with its **live** test file count (from the fresh Glob), the glob pattern, and optionally a `[was N at init]` suffix if the live count differs from the count stored in `test-state.md`. If counts are not stored in `test-state.md`, omit the suffix.
 - **Frameworks suggested**: list any frameworks mentioned as suggestions in `test-state.md` (frameworks that were detected but are not yet active).
 - **Conventions**: include any test naming patterns, coverage thresholds, or other conventions recorded in `test-state.md`. Omit this section if no conventions are recorded.
 - **Stop hook**: read `config.json` for the hook enabled/disabled status. If `config.json` does not exist, show "not configured — run `/qf-init` to enable".

@@ -5,7 +5,7 @@ description: >
   frameworks, writes .qualflare/test-state.md, and configures the optional
   Stop hook. Use when the user runs /qf-init or asks to "set up
   Qualflare" or "initialize Qualflare".
-allowed-tools: Read Write Edit Bash(git:*) Bash(mkdir:*) Bash(node:*)
+allowed-tools: Read Write Edit Glob Bash(git:*) Bash(mkdir:*) Bash(node:*)
 ---
 
 You are executing the `qf-init` skill. Follow every step below in order. Do not skip steps or reorder them.
@@ -48,7 +48,7 @@ Then dispatch a fresh **Explore subagent** (a subordinate Claude Code agent with
 >
 > **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list.
 >
-> **Glob test files:** For each detected framework, use the globs from the reference file to estimate the test file count (use `find` or `ls` with glob). Report: slug, estimated test count, top-level test directories.
+> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count. Report: slug, estimated test count, top-level test directories.
 >
 > **Suggestions:** If you see strong indicators for a framework the project doesn't currently use (e.g., React SPA with no E2E framework), note it as a suggestion.
 >

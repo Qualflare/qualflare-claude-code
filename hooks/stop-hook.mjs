@@ -27,6 +27,16 @@ try {
     if (!line.trim()) continue;
     let entry;
     try { entry = JSON.parse(line); } catch { continue; }
+    // Real transcript shape: assistant message wrapping content blocks
+    if (entry.type === 'assistant' && Array.isArray(entry.message?.content)) {
+      for (const block of entry.message.content) {
+        if (block.type === 'tool_use' && EDIT_TOOLS.has(block.name)) {
+          const p = block.input?.file_path ?? block.input?.path;
+          if (p) paths.add(p);
+        }
+      }
+    }
+    // Legacy fallback: top-level tool_use (older transcript format)
     if (entry.type === 'tool_use' && EDIT_TOOLS.has(entry.name)) {
       const p = entry.input?.file_path ?? entry.input?.path;
       if (p) paths.add(p);

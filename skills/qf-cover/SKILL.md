@@ -147,27 +147,42 @@ Then stop.
 
 ---
 
-## Step 4 — Check for co-located tests
+## Step 4 — Check for existing tests
 
 > **Skip this step if you entered from Step 2's cold-start flow** — the working file list is already known to be untested.
 
-For each source file that passed the Step 3 filter, check whether a co-located test file already exists. Use the Read tool to probe for each candidate path below. A co-located test is considered present if ANY of the following paths exists:
+For each source file that passed the Step 3 filter, check whether an existing test already covers it. This covers both co-located tests and centralized test-tree layouts. Use the `Glob` tool to probe the paths below. A test is considered present if ANY match is found.
 
 For a source file at `<dir>/<base>.<ext>`:
 
+**Co-located (same directory):**
 - `<dir>/<base>.test.<ext>` (e.g., `src/utils/formatter.test.ts`)
 - `<dir>/<base>.spec.<ext>` (e.g., `src/utils/formatter.spec.ts`)
 - `<dir>/__tests__/<base>.<ext>` (e.g., `src/utils/__tests__/formatter.ts`)
-- **Go only** (`_test.go` convention): `<dir>/<base>_test.go`
+- **Go only**: `<dir>/<base>_test.go`
 - **Python only**: `<dir>/test_<base>.py` or `<dir>/<base>_test.py`
 
-If ALL source files in the list already have a co-located test, tell the user:
+**Top-level test trees (centralized layouts):**
+- `tests/**/<base>.test.<ext>` and `tests/**/<base>.spec.<ext>`
+- `tests/**/test_<base>.py` and `tests/**/<base>_test.py`
+- `tests/**/<base>Test.php`
+- `spec/**/<base>_spec.rb`
+- `e2e/**/<base>.spec.<ext>` and `e2e/**/<base>.cy.<ext>`
+- `playwright/**/<base>.spec.<ext>`
+- `cypress/e2e/**/<base>.cy.<ext>`
 
-> "All changed source files have co-located tests. Nicely done!"
+**Mirror-tree layout** (if source path starts with `src/`):
+- Let `<rest>` = path segments after `src/`. Also check:
+  - `tests/<rest>/<base>.test.<ext>`
+  - `__tests__/<rest>/<base>.<ext>`
+
+If ALL source files in the list already have an existing test, tell the user:
+
+> "All changed source files already have tests. Nicely done!"
 
 Then stop.
 
-Remove from the working list any source file that already has a co-located test. Continue with only the files that lack tests.
+Remove from the working list any source file that already has a test. Continue with only the files that lack tests.
 
 ---
 
@@ -198,9 +213,13 @@ For each source file without a co-located test, do the following in order:
 
 5. Repeat for every source file without a test.
 
-After listing all proposals, ask the user:
+After listing all proposals, print a one-line summary:
 
-> "Shall I write these tests? You can also say 'skip <filename>' to exclude specific files, or 'all' to proceed with all of them."
+> "**Summary:** \<N\> file(s) · \<M\> test cases proposed"
+
+Then ask:
+
+> "Shall I write these tests? Reply 'all' or 'yes' to write everything, 'skip \<filename\>' to exclude specific files, or 'no' to cancel."
 
 Wait for user input before proceeding. Do not write any test files until the user responds.
 

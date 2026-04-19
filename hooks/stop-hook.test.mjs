@@ -36,10 +36,32 @@ function writeConfig(projectDir, config) {
 }
 
 /**
- * Write JSONL lines to the transcript file.
- * Each entry is { name, filePath } which becomes a tool_use line.
+ * Write JSONL lines to the transcript file using the real Claude Code shape:
+ * {type:'assistant', message:{content:[{type:'tool_use', ...}]}}
  */
 function writeTranscript(transcriptPath, edits) {
+  const lines = edits.map(({ name, filePath }) =>
+    JSON.stringify({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: `tu_${Math.random().toString(36).slice(2)}`,
+            name,
+            input: { file_path: filePath, old_string: '', new_string: '' },
+          },
+        ],
+      },
+    })
+  );
+  writeFileSync(transcriptPath, lines.join('\n'));
+}
+
+/**
+ * Write JSONL lines using the legacy top-level tool_use shape (fallback).
+ */
+function writeLegacyTranscript(transcriptPath, edits) {
   const lines = edits.map(({ name, filePath }) =>
     JSON.stringify({
       type: 'tool_use',
@@ -200,6 +222,19 @@ test('Test 10: source file AND test file both edited — no nudge', () => {
     ]);
     const { stdout } = runHook({ transcriptPath, projectDir });
     assert.equal(stdout, '', 'Expected empty stdout when tests were also updated alongside source files');
+  } finally {
+    cleanup();
+  }
+});
+
+test('Test 11: legacy top-level tool_use shape still triggers suggestion (fallback)', () => {
+  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
+  try {
+    writeConfig(projectDir, { stopHookEnabled: true });
+    writeLegacyTranscript(transcriptPath, [{ name: 'Edit', filePath: 'src/legacy.ts' }]);
+    const { parsed } = runHook({ transcriptPath, projectDir });
+    assert.ok(parsed?.systemMessage, 'Expected a systemMessage for legacy top-level tool_use shape');
+    assert.match(parsed.systemMessage, /1 source file\(s\)/);
   } finally {
     cleanup();
   }

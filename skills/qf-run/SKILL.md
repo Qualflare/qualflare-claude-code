@@ -4,7 +4,7 @@ description: >
   Run the project's test suite and upload results to Qualflare. Use when the
   user runs /qf-run, asks to "run tests and report", asks to "run tests
   and upload", or explicitly invokes this skill after writing tests.
-allowed-tools: Read Bash(qf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
+allowed-tools: Read Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*)
 ---
 
 ## Step 1 — Read test state
@@ -26,26 +26,34 @@ If `$ARGUMENTS` is provided (e.g. a framework slug such as `jest`, or a file glo
 
 ## Step 2 — Run tests per framework
 
+Before running any framework, create the results directory:
+
+```bash
+mkdir -p $CLAUDE_PROJECT_DIR/.qualflare/results
+```
+
 For each detected framework slug, run the appropriate command below to produce a machine-readable results file. Run the commands from `$CLAUDE_PROJECT_DIR`.
 
 | Slug | Command | Output file |
 |------|---------|-------------|
-| jest | `npx jest --json --outputFile=qualflare-results.json` | `qualflare-results.json` |
-| vitest | Not a stored slug — vitest projects use the `jest` slug. Run: `npx vitest run --reporter=junit --outputFile=qualflare-results.xml` and upload under slug `jest`. | `qualflare-results.xml` |
-| mocha | `npx mocha --reporter xunit > qualflare-results.xml` | `qualflare-results.xml` |
-| pytest | `pytest --junit-xml=qualflare-results.xml`  (or: `python -m pytest --junit-xml=qualflare-results.xml` in virtualenv) | `qualflare-results.xml` |
-| golang | `go test ./... -json > qualflare-results.json` | `qualflare-results.json` |
-| playwright | `npx playwright test --reporter=junit --output-file=qualflare-results.xml` | `qualflare-results.xml` |
-| cypress | `npx cypress run --reporter junit --reporter-options mochaFile=qualflare-results.xml` | `qualflare-results.xml` |
-| rspec | `bundle exec rspec --format RspecJunitFormatter --out qualflare-results.xml` | `qualflare-results.xml` |
-| phpunit | `./vendor/bin/phpunit --log-junit qualflare-results.xml` | `qualflare-results.xml` |
+| jest | `npx jest --json --outputFile=.qualflare/results/jest.json` | `.qualflare/results/jest.json` |
+| vitest | Not a stored slug — vitest projects use the `jest` slug. Run: `npx vitest run --reporter=json --outputFile=.qualflare/results/jest.json` and upload under slug `jest`. | `.qualflare/results/jest.json` |
+| mocha | `npx mocha --reporter xunit > .qualflare/results/mocha.xml` | `.qualflare/results/mocha.xml` |
+| pytest | `pytest --junit-xml=.qualflare/results/pytest.xml`  (or: `python -m pytest --junit-xml=.qualflare/results/pytest.xml` in virtualenv) | `.qualflare/results/pytest.xml` |
+| golang | `go test ./... -json > .qualflare/results/golang.json` | `.qualflare/results/golang.json` |
+| playwright | `npx playwright test --reporter=junit --output-file=.qualflare/results/playwright.xml` | `.qualflare/results/playwright.xml` |
+| cypress | `npx cypress run --reporter junit --reporter-options mochaFile=.qualflare/results/cypress.xml` | `.qualflare/results/cypress.xml` |
+| rspec | `bundle exec rspec --format RspecJunitFormatter --out .qualflare/results/rspec.xml` | `.qualflare/results/rspec.xml` |
+| phpunit | `./vendor/bin/phpunit --log-junit .qualflare/results/phpunit.xml` | `.qualflare/results/phpunit.xml` |
 | junit | See note below | See note below |
 | cucumber | See note below | varies |
 | k6 | See note below | n/a |
 
 **junit note:** JUnit tests are run by Maven or Gradle. Check for `pom.xml` to determine Maven, or `build.gradle` / `build.gradle.kts` for Gradle.
-- Maven: `mvn test` → results in `target/surefire-reports/*.xml`
-- Gradle: `gradle test` → results in `build/test-results/**/*.xml`
+- Maven: `mvn test` → results in `target/surefire-reports/*.xml`. Copy one report: `cp target/surefire-reports/*.xml .qualflare/results/junit.xml`
+- Gradle: `gradle test` → results in `build/test-results/**/*.xml`. Copy one report: `cp build/test-results/test/*.xml .qualflare/results/junit.xml`
+
+Upload with `--format junit`.
 
 **cucumber note:** Run varies by language. For JavaScript use `cucumber-js`; for Java use the cucumber JUnit runner. Capture JUnit XML output. The exact command depends on how the project has configured cucumber — inspect the project scripts first.
 
@@ -58,11 +66,25 @@ For each detected framework slug, run the appropriate command below to produce a
 
 ## Step 3 — Upload results
 
-For each result file produced in Step 2, run:
+Before uploading, verify the `qf` CLI is available:
 
 ```bash
-qf upload <results-file>
+qf version
 ```
+
+If the command exits with code 127 (command not found) or is otherwise unavailable, tell the user:
+
+> "`qf` CLI not found. Download and install it from https://qualflare.com/docs/cli, then re-run `/qf-run`."
+
+Stop here — do not attempt uploads without the CLI.
+
+For each result file produced in Step 2, run `qf upload` with the explicit `--format` flag matching the framework slug used to produce the file:
+
+```bash
+qf upload <results-file> --format <slug>
+```
+
+For example: `qf upload .qualflare/results/jest.json --format jest` or `qf upload .qualflare/results/playwright.xml --format playwright`.
 
 **If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, or `login`:**
 
