@@ -44,26 +44,20 @@ export async function findProjectRoot(startDir?: string): Promise<string> {
   const home = homedir()
 
   let current = start
-  let found: string | null = null
 
   while (true) {
     if (await hasMarker(current)) {
-      found = current
+      return current // closest ancestor wins — return immediately
     }
 
-    // Stop at home directory
-    if (current === home) {
-      break
-    }
+    if (current === home || current === dirname(home)) break
 
     const parent = dirname(current)
     // Stop if we can't go further up (reached filesystem root)
-    if (parent === current) {
-      break
-    }
+    if (parent === current) break
 
     current = parent
   }
 
-  return found ?? start
+  return start // fallback if no match
 }
