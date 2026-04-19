@@ -47,21 +47,33 @@ export async function runWizard(options: WizardOptions): Promise<void> {
   // Step 3: Detect stack (with spinner)
   const stackSpinner = spinner()
   stackSpinner.start('Detecting tech stack…')
-  const stackResult = await detectStack(projectRoot)
-  stackSpinner.stop(
-    stackResult.primaryLanguage !== 'Unknown'
-      ? `Stack detected: ${stackResult.primaryLanguage}`
-      : 'Stack detection complete',
-  )
+  let stackResult: Awaited<ReturnType<typeof detectStack>>
+  try {
+    stackResult = await detectStack(projectRoot)
+    stackSpinner.stop(
+      stackResult.primaryLanguage !== 'Unknown'
+        ? `Stack detected: ${stackResult.primaryLanguage}`
+        : 'Stack detection complete',
+    )
+  } catch (err) {
+    stackSpinner.stop('Stack detection failed')
+    throw err
+  }
 
   const detectedSlugs = stackResult.allFrameworks.map((fw) => fw.slug as import('../frameworks/slugs.js').FrameworkSlug)
 
   // Step 4: Scan test files (with spinner)
   const scanSpinner = spinner()
   scanSpinner.start('Scanning test files…')
-  const testFiles = await scanTestFiles(projectRoot, detectedSlugs)
-  const totalTestFiles = testFiles.reduce((sum, tf) => sum + tf.count, 0)
-  scanSpinner.stop(`Scan complete — ${totalTestFiles} test file(s) found`)
+  let testFiles: Awaited<ReturnType<typeof scanTestFiles>>
+  try {
+    testFiles = await scanTestFiles(projectRoot, detectedSlugs)
+    const totalTestFiles = testFiles.reduce((sum, tf) => sum + tf.count, 0)
+    scanSpinner.stop(`Scan complete — ${totalTestFiles} test file(s) found`)
+  } catch (err) {
+    scanSpinner.stop('Scan failed')
+    throw err
+  }
 
   // Step 5: Confirm frameworks
   const { confirmedFrameworks, userNotes } = await confirmFrameworks({

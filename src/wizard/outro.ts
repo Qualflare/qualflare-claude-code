@@ -1,3 +1,4 @@
+import { relative } from 'path'
 import { log, outro } from '@clack/prompts'
 
 export interface OutroInput {
@@ -7,7 +8,8 @@ export interface OutroInput {
 }
 
 export function showOutro(input: OutroInput): void {
-  log.success('Created: .qualflare/test-state.md')
+  const displayPath = relative(input.projectRoot, input.testStatePath)
+  log.success(`Created: ${displayPath}`)
   for (const agent of input.installedAgents) {
     log.success(`Configured: ${agent}`)
   }
