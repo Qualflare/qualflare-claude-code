@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
+import { mkdtemp, writeFile, rm } from 'fs/promises'
+import { tmpdir } from 'os'
 import { nodeDetector } from '../src/detect/languages/node.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -27,8 +29,6 @@ describe('nodeDetector', () => {
   })
 
   it('suggests playwright when react is present and no E2E found', async () => {
-    const { mkdtemp, writeFile, rm } = await import('fs/promises')
-    const { tmpdir } = await import('os')
     const tmpDir = await mkdtemp(join(tmpdir(), 'qf-test-'))
     try {
       await writeFile(
