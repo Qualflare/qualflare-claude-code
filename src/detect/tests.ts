@@ -22,7 +22,12 @@ const GLOBS: Partial<Record<FrameworkSlug, string[]>> = {
   python: ['**/test_*.py', '**/*_test.py', 'tests/**/*.py'],
   rspec: ['spec/**/*_spec.rb'],
   phpunit: ['tests/**/*Test.php', 'test/**/*Test.php'],
-  playwright: ['e2e/**/*.spec.{ts,js}', 'tests/e2e/**/*.spec.{ts,js}', '**/*.spec.{ts,js}'],
+  playwright: [
+    'e2e/**/*.spec.{ts,js}',
+    'tests/e2e/**/*.spec.{ts,js}',
+    'playwright/**/*.spec.{ts,js}',
+    'playwright.config.{ts,js}',
+  ],
   cypress: ['cypress/e2e/**/*.cy.{ts,js}', 'cypress/integration/**/*.{ts,js}'],
   selenium: ['tests/**/*selenium*.{js,ts,java}'],
   cucumber: ['features/**/*.feature', 'test/**/*.feature'],

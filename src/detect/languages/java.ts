@@ -14,20 +14,6 @@ function isRecord(val: unknown): val is Record<string, unknown> {
   return typeof val === 'object' && val !== null && !Array.isArray(val)
 }
 
-function collectStrings(val: unknown, out: string[]): void {
-  if (typeof val === 'string') {
-    out.push(val)
-  } else if (Array.isArray(val)) {
-    for (const item of val) {
-      collectStrings(item, out)
-    }
-  } else if (isRecord(val)) {
-    for (const v of Object.values(val)) {
-      collectStrings(v, out)
-    }
-  }
-}
-
 function artifactIdToSlug(artifactId: string): { slug: FrameworkSlug; note?: string } | null {
   const lower = artifactId.toLowerCase()
   if (lower.includes('junit')) return { slug: 'junit' }
@@ -67,15 +53,48 @@ async function detectFromPom(pomPath: string): Promise<DetectedFramework[]> {
     return []
   }
 
-  // Collect all string values and look for artifact IDs
-  const strings: string[] = []
-  collectStrings(parsed, strings)
+  if (!isRecord(parsed)) return []
+
+  const project = isRecord((parsed as Record<string, unknown>)['project'])
+    ? (parsed as Record<string, unknown>)['project'] as Record<string, unknown>
+    : null
+  if (!project) return []
+
+  // Collect artifactIds from dependencies and plugins
+  const artifactIds: string[] = []
+
+  // Standard dependencies
+  const deps = project['dependencies']
+  if (isRecord(deps)) {
+    const depList = deps['dependency']
+    const items = Array.isArray(depList) ? depList : depList ? [depList] : []
+    for (const item of items) {
+      if (isRecord(item) && typeof item['artifactId'] === 'string') {
+        artifactIds.push(item['artifactId'])
+      }
+    }
+  }
+
+  // Build plugins (for maven-surefire, karate-maven, etc.)
+  const build = project['build']
+  if (isRecord(build)) {
+    const plugins = build['plugins']
+    if (isRecord(plugins)) {
+      const pluginList = plugins['plugin']
+      const items = Array.isArray(pluginList) ? pluginList : pluginList ? [pluginList] : []
+      for (const item of items) {
+        if (isRecord(item) && typeof item['artifactId'] === 'string') {
+          artifactIds.push(item['artifactId'])
+        }
+      }
+    }
+  }
 
   const frameworks: DetectedFramework[] = []
   const slugsSeen = new Set<FrameworkSlug>()
 
-  for (const str of strings) {
-    const result = artifactIdToSlug(str)
+  for (const id of artifactIds) {
+    const result = artifactIdToSlug(id)
     if (result && !slugsSeen.has(result.slug)) {
       slugsSeen.add(result.slug)
       frameworks.push({ slug: result.slug, source: 'dep' })
@@ -136,7 +155,7 @@ export const javaDetector: Detector = {
     const gradleKtsPath = join(projectRoot, 'build.gradle.kts')
 
     let hasPom = false
-    let hasGradle = false
+    let resolvedGradleFile: string | null = null
 
     try {
       await stat(pomPath)
@@ -145,17 +164,12 @@ export const javaDetector: Detector = {
       // no pom.xml
     }
 
-    try {
-      await stat(gradlePath)
-      hasGradle = true
-    } catch {
-      try {
-        await stat(gradleKtsPath)
-        hasGradle = true
-      } catch {
-        // no gradle
-      }
+    try { await stat(gradlePath); resolvedGradleFile = gradlePath } catch { /* not found */ }
+    if (!resolvedGradleFile) {
+      try { await stat(gradleKtsPath); resolvedGradleFile = gradleKtsPath } catch { /* not found */ }
     }
+
+    const hasGradle = resolvedGradleFile !== null
 
     if (!hasPom && !hasGradle) {
       return {
@@ -171,9 +185,8 @@ export const javaDetector: Detector = {
     if (hasPom) {
       // Prefer pom.xml over gradle
       frameworks = await detectFromPom(pomPath)
-    } else if (hasGradle) {
-      const gradleFile = (await stat(gradlePath).catch(() => null)) ? gradlePath : gradleKtsPath
-      frameworks = await detectFromGradle(gradleFile)
+    } else if (resolvedGradleFile) {
+      frameworks = await detectFromGradle(resolvedGradleFile)
     }
 
     return {
