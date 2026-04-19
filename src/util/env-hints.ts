@@ -5,12 +5,13 @@
 import { stat } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
+import type { AgentId } from '../install/types.js'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type AgentId = 'claude-code' | 'cursor' | 'codex' | 'gemini' | 'continue'
+export type { AgentId }
 
 export interface AgentHint {
   id: AgentId

@@ -36,7 +36,7 @@ async function hasMarker(dir: string): Promise<boolean> {
 
 /**
  * Resolves the project root from startDir (defaults to process.cwd()).
- * Returns the highest directory (closest to cwd) that contains any ROOT_MARKER.
+ * Returns the nearest ancestor directory containing a recognized project marker file. Stops walking at HOME.
  * If none found, returns startDir as fallback.
  */
 export async function findProjectRoot(startDir?: string): Promise<string> {

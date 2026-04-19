@@ -98,7 +98,6 @@ export async function runWizard(options: WizardOptions): Promise<void> {
 
   await ensureDir(qualflareDir)
   await atomicWrite(testStatePath, testStateContent)
-  log.success('Created .qualflare/test-state.md')
 
   // Step 7: Confirm and install agents
   let selectedAgents: AgentId[]

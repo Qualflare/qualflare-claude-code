@@ -4,6 +4,7 @@ export interface DetectedFramework {
   slug: FrameworkSlug
   source: 'dep' | 'config' | 'glob' // how it was found
   version?: string // e.g. "^29.0.0" from package.json
+  note?: string // optional human-readable note (e.g. aliased slug explanation)
 }
 
 export interface FrameworkSuggestion {

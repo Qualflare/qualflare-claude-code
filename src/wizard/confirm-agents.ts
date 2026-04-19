@@ -1,4 +1,4 @@
-import { cancel, isCancel, multiselect } from '@clack/prompts'
+import { cancel, isCancel, log, multiselect } from '@clack/prompts'
 import type { AgentHint } from '../util/env-hints.js'
 import type { AgentId } from '../install/types.js'
 
@@ -24,6 +24,9 @@ export async function confirmAgents(input: AgentConfirmInput): Promise<AgentId[]
   const detectedIds = hints.filter((h) => h.detected).map((h) => h.id)
 
   if (yesMode) {
+    if (detectedIds.length === 0) {
+      log.warn('No AI coding agents detected. Skipping agent plugin install.\nRun without --yes to manually select agents.')
+    }
     return detectedIds
   }
 
