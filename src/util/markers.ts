@@ -41,7 +41,7 @@ export function extractMarkerBlock(fileContent: string, tag = MARKER_TAG): strin
 
 /** Returns true if the file contains a marker block. */
 export function hasMarkerBlock(fileContent: string, tag = MARKER_TAG): boolean {
-  return fileContent.includes(beginMarker(tag))
+  return fileContent.includes(beginMarker(tag)) && fileContent.includes(endMarker(tag))
 }
 
 /**
@@ -56,6 +56,9 @@ export function upsertMarkerBlock(
 ): string {
   const begin = beginMarker(tag)
   const end = endMarker(tag)
+  if (newBlockContent.includes(begin) || newBlockContent.includes(end)) {
+    throw new Error(`[qualflare-ai] upsertMarkerBlock: newBlockContent must not contain marker strings`)
+  }
 
   const startIdx = fileContent.indexOf(begin)
   if (startIdx === -1) {

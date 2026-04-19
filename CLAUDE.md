@@ -75,7 +75,7 @@ src/
 ### 2. Never overwrite user files outside marker blocks
 
 All file writes that touch existing user files must:
-- Check for `# BEGIN qualflare-ai` / `# END qualflare-ai` marker blocks.
+- Check for `<!-- BEGIN qualflare-ai -->` / `<!-- END qualflare-ai -->` marker blocks.
 - Only write/replace content within those blocks.
 - Leave all content outside the blocks untouched.
 

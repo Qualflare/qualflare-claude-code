@@ -4,7 +4,6 @@
  */
 
 import { mkdir, readFile, rename, writeFile } from 'fs/promises'
-import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 import { extractMarkerBlock, hasMarkerBlock, upsertMarkerBlock, wrapInMarkers } from './markers.js'
 
@@ -49,8 +48,7 @@ export async function atomicWrite(filePath: string, content: string): Promise<vo
   const dir = dirname(filePath)
   await ensureDir(dir)
 
-  // Use a temp file in os.tmpdir() — rename across filesystems falls back
-  // gracefully on Linux/macOS. For safety we use the same directory.
+  // Write to a temp file in the same directory, then rename (avoids cross-device EXDEV errors)
   const tmp = join(dir, `.qualflare-tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   try {
     await writeFile(tmp, content, 'utf8')

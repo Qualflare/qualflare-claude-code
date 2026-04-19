@@ -2,7 +2,7 @@
  * Detect which AI coding agents are likely installed in the user's environment.
  */
 
-import { access } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 
@@ -140,8 +140,8 @@ async function detectContinue(home: string): Promise<AgentHint> {
 
 async function dirAccessible(dirPath: string): Promise<boolean> {
   try {
-    await access(dirPath)
-    return true
+    const s = await stat(dirPath)
+    return s.isDirectory()
   } catch {
     return false
   }
