@@ -152,7 +152,7 @@ Choose the framework based on the slugs extracted in Step 1 and the source file'
 - **`jest` or `vitest`** (TypeScript/JavaScript): Write using `describe`/`it`/`expect` blocks. Use ES module imports (`import { ... } from '../<source>.js'`). For TypeScript, preserve types in assertions. If `vitest` is the detected runner, import from `vitest` rather than `@jest/globals`.
 - **`playwright`** (TypeScript/JavaScript, E2E): Write using `test`/`expect` blocks with `@playwright/test` imports. Only generate Playwright tests if the source file is clearly a page/component, not a utility.
 - **`pytest`** (Python): Write using `def test_<name>():` functions. Group related tests in a class prefixed with `Test`. Import the module under test at the top.
-- **`go-test`** (Go): Write using `func Test<Name>(t *testing.T)` functions inside a `_test` package. Import `testing` and the package under test.
+- **`golang`** (Go): Write using `func Test<Name>(t *testing.T)` functions inside a `_test` package. Import `testing` and the package under test.
 - **`rspec`** (Ruby): Write using `describe`/`it` blocks with `RSpec.describe`. Require the file under test at the top.
 - **`phpunit`** (PHP): Write a class extending `PHPUnit\Framework\TestCase`. Use `setUp`/`tearDown` where appropriate.
 - **`junit`** or **`testng`** (Java/Kotlin): Write a class with `@Test`-annotated methods. Import the relevant annotations at the top.

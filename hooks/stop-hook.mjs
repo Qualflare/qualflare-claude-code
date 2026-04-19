@@ -43,8 +43,8 @@ try {
     /[/\\]cypress[/\\]/,
     /[/\\]playwright[/\\]/,
     /_test\.go$/,
-    /[/\\]test_[^/\\]+\.py$/,
-    /[^/\\]+_test\.py$/,
+    /(?:^|[/\\])test_[^/\\]+\.py$/,   // pytest test_*.py prefix
+    /[^/\\]+_test\.py$/,               // pytest *_test.py suffix
     /[/\\]spec[/\\].+_spec\.rb$/,
     /[/\\]tests[/\\].+Test\.php$/,
   ];

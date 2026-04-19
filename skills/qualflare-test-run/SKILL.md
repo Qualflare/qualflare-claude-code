@@ -30,7 +30,7 @@ For each detected framework slug, run the appropriate command below to produce a
 
 | Slug | Command | Output file |
 |------|---------|-------------|
-| jest | `npx jest --reporters=default --outputFile=qualflare-results.json --json` | `qualflare-results.json` |
+| jest | `npx jest --json --outputFile=qualflare-results.json` | `qualflare-results.json` |
 | vitest | `npx vitest run --reporter=junit --outputFile=qualflare-results.xml` | `qualflare-results.xml` |
 | mocha | `npx mocha --reporter xunit > qualflare-results.xml` | `qualflare-results.xml` |
 | pytest | `python -m pytest --junit-xml=qualflare-results.xml` | `qualflare-results.xml` |

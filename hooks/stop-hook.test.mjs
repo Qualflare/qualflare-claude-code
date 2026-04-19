@@ -179,3 +179,15 @@ test('Test 8: multiple source files count correctly', () => {
     cleanup();
   }
 });
+
+test('Test 9: Python test_*.py file is excluded', () => {
+  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
+  try {
+    writeConfig(projectDir, { stopHookEnabled: true });
+    writeTranscript(transcriptPath, [{ name: 'Edit', filePath: 'src/test_auth.py' }]);
+    const { stdout } = runHook({ transcriptPath, projectDir });
+    assert.equal(stdout, '', 'Expected empty stdout when only test_*.py file edited');
+  } finally {
+    cleanup();
+  }
+});

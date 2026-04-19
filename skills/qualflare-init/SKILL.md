@@ -5,7 +5,7 @@ description: >
   frameworks, writes .qualflare/test-state.md, and configures the optional
   Stop hook. Use when the user runs /qualflare-init or asks to "set up
   Qualflare" or "initialize Qualflare".
-allowed-tools: Read Write Bash(git:*) Bash(mkdir:*) Bash(node:*)
+allowed-tools: Read Write Edit Bash(git:*) Bash(mkdir:*) Bash(node:*)
 ---
 
 You are executing the `qualflare-init` skill. Follow every step below in order. Do not skip steps or reorder them.
