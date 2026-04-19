@@ -5,7 +5,7 @@ description: >
   Use when the user runs /qf-cover, asks to "add test coverage", asks to
   "write tests", reacts to the Qualflare hook suggestion, or explicitly invokes
   this skill.
-allowed-tools: Read Write Edit Bash(git diff:*) Bash(git status:*)
+allowed-tools: Read Write Edit Glob Bash(git diff:*) Bash(git status:*)
 ---
 
 You are executing the `qf-cover` skill. Follow every step below in order. Do not skip steps or reorder them.
@@ -32,7 +32,78 @@ Keep these values in memory for use in later steps.
 
 ---
 
-## Step 2 — Find changed source files
+## Step 2 — Detect cold start
+
+Before using `git diff`, check whether this project has **any** existing tests.
+
+Use `Glob` with each of the following patterns and sum the total match count. Exclude any match whose path contains `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, or `__pycache__/`.
+
+- `**/*.test.{js,jsx,ts,tsx,mjs,cjs}`
+- `**/*.spec.{js,jsx,ts,tsx,mjs,cjs}`
+- `**/__tests__/**/*.{js,jsx,ts,tsx}`
+- `**/*_test.go`
+- `**/test_*.py`
+- `**/*_test.py`
+- `**/*_spec.rb`
+- `**/tests/**/*Test.php`
+
+**If the total count is > 0**: this project has existing tests. Skip ahead to Step 3 (changed-file flow).
+
+**If the total count is 0**: cold start. Continue with the cold-start flow below.
+
+### Cold-start flow
+
+**If `$ARGUMENTS` is non-empty** (user ran e.g. `/qf-cover src/api/`): treat that argument as the working file list. Apply the Conditions 1–3 filter from Step 3 to the files under that path. Skip the area picker below and jump directly to Step 5 with that list.
+
+**Otherwise** (no explicit path):
+
+1. **Scan for source files.** Use `Glob` with pattern `**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,go,py,rb,php,rs,java,kt}`. Apply the Conditions 1–3 filter from Step 3 (exclude test files, excluded directories, config files, type-only files) to the results.
+
+2. **Group by area.** For each source file, determine its area as the **first two directory segments under the first conventional source root** found in the path (`src/`, `lib/`, `internal/`, `app/`, `pkg/`). If the file has no conventional source root in its path, group it under `(root)`.
+
+   - `src/api/user.ts` → area `src/api/`
+   - `internal/handlers/login.go` → area `internal/handlers/`
+   - `main.py` → area `(root)`
+
+3. **If the total source file count is ≤ 8**: skip the area picker. Treat all source files as the working list and jump to Step 5.
+
+4. **Otherwise, present the area overview** and wait for user input:
+
+   ```
+   No existing tests found. Let's bootstrap coverage one area at a time.
+
+   Source areas (<total> files total):
+   1. src/api/         (15 files)
+   2. src/services/    (22 files)
+   3. src/utils/       (8 files)
+   4. src/components/  (37 files)
+   5. src/hooks/       (5 files)
+
+   Which areas should we cover in this round?
+   - By number or name: "1, 3" or "api, utils"
+   - Explicit files: "src/api/user.ts src/api/auth.ts"
+   - Everything: "all" (not recommended unless the project is tiny)
+   ```
+
+5. **Parse the user's response:**
+   - Numbers or area names → collect every source file in those areas.
+   - Explicit file paths → use exactly those paths.
+   - `all` → collect every source file across all areas.
+   - `no`, `cancel`, or empty → stop without writing anything.
+
+6. **Apply the per-round cap.** If the selected list contains **more than 8 files**, tell the user:
+
+   > "That's \<N\> files — more than fits comfortably in one round. Please narrow further (pick fewer areas, or name specific files). I'll wait."
+
+   Repeat from step 4 until the selected list is ≤ 8 files or the user cancels.
+
+7. **Proceed to Step 5** with the narrowed working list. Skip Steps 3 and 4 — cold-start files are already known to have no tests.
+
+---
+
+## Step 3 — Find changed source files
+
+> **Skip this step if you entered from Step 2's cold-start flow** — the working file list is already set.
 
 Run both of the following commands and union their results into a single list of file paths:
 
@@ -76,9 +147,11 @@ Then stop.
 
 ---
 
-## Step 3 — Check for co-located tests
+## Step 4 — Check for co-located tests
 
-For each source file that passed the Step 2 filter, check whether a co-located test file already exists. Use the Read tool to probe for each candidate path below. A co-located test is considered present if ANY of the following paths exists:
+> **Skip this step if you entered from Step 2's cold-start flow** — the working file list is already known to be untested.
+
+For each source file that passed the Step 3 filter, check whether a co-located test file already exists. Use the Read tool to probe for each candidate path below. A co-located test is considered present if ANY of the following paths exists:
 
 For a source file at `<dir>/<base>.<ext>`:
 
@@ -98,7 +171,7 @@ Remove from the working list any source file that already has a co-located test.
 
 ---
 
-## Step 4 — Read source files and propose tests
+## Step 5 — Read source files and propose tests
 
 For each source file without a co-located test, do the following in order:
 
@@ -139,7 +212,7 @@ Process the response as follows:
 
 ---
 
-## Step 5 — Write approved tests
+## Step 6 — Write approved tests
 
 For each approved source file, write the test file. Follow these rules:
 
@@ -168,7 +241,7 @@ Use the Write tool to create each test file at the determined path.
 
 ---
 
-## Step 6 — Suggest next step
+## Step 7 — Suggest next step
 
 After all approved test files have been written, tell the user:
 
@@ -178,11 +251,14 @@ After all approved test files have been written, tell the user:
 
 ## Edge cases
 
-- **`$ARGUMENTS` is empty**: Process all changed source files without additional path filtering (Step 2 still applies).
-- **Source file is a configuration file** (e.g., `vite.config.ts`, `jest.config.ts`, `next.config.js`): Exclude it from the list — configuration files do not need unit tests. Add this exclusion in Step 2 by checking if the filename contains `config` or `setup` as a whole word segment.
+- **`$ARGUMENTS` is empty**: Process all changed source files without additional path filtering (Step 3 still applies).
+- **Source file is a configuration file** (e.g., `vite.config.ts`, `jest.config.ts`, `next.config.js`): Exclude it from the list — configuration files do not need unit tests. Add this exclusion in Step 3 by checking if the filename contains `config` or `setup` as a whole word segment.
 - **Source file is a type definition only** (e.g., `types.ts`, `*.d.ts`): Exclude it — type-only files have no runtime behavior to test.
 - **Multiple frameworks detected for the same language**: Prefer the framework whose config file is present at the project root. If still ambiguous, ask the user which framework to use before writing any test files.
 - **No naming convention in test-state.md**: Search the project for two or three existing test files using the Read tool on likely paths, infer the convention from those files, and use it. If no existing test files are found, default to `<base>.test.<ext>` co-located with the source.
 - **User says 'skip' for all files**: Acknowledge the skips and stop without writing anything. Do not suggest further actions.
 - **Read tool returns an error** for a source file (e.g., file was deleted after `git diff` ran): Skip that file silently and proceed with the remaining files.
 - **Dry-run context**: If the session context indicates a dry-run mode, log what would be written but do not call Write or Edit. Report each file path and a summary of its test cases.
+- **Cold-start project with ≤ 8 source files total**: Skip the area picker — just treat all source files as the working list and proceed directly to Step 5.
+- **Cold-start user selects an area whose file count is > 8**: Apply the per-round cap and prompt to narrow further. Do not silently truncate the list.
+- **Cold-start with unusual source layout** (e.g., `packages/*/src/`): All such files fall back to the `(root)` area group. If everything lands in `(root)`, list files individually instead of areas so the user can choose meaningfully.
