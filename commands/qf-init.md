@@ -3,4 +3,4 @@ description: "Run the first-time Qualflare setup: detect tech stack, write .qual
 argument-hint: ""
 ---
 
-Use the qualflare-init skill to set up Qualflare for this project. Follow every step in the skill.
+Use the qf-init skill to set up Qualflare for this project. Follow every step in the skill.

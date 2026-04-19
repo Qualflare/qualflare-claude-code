@@ -1,14 +1,14 @@
 ---
-name: qualflare-test-gen
+name: qf-cover
 description: >
   Propose and write new tests for source files changed in the current session.
-  Use when the user runs /qualflare-cover, asks to "add test coverage", asks to
+  Use when the user runs /qf-cover, asks to "add test coverage", asks to
   "write tests", reacts to the Qualflare hook suggestion, or explicitly invokes
   this skill.
 allowed-tools: Read Write Edit Bash(git diff:*) Bash(git status:*)
 ---
 
-You are executing the `qualflare-test-gen` skill. Follow every step below in order. Do not skip steps or reorder them.
+You are executing the `qf-cover` skill. Follow every step below in order. Do not skip steps or reorder them.
 
 ---
 
@@ -18,7 +18,7 @@ Read the file at `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
 
 If the file does not exist, stop immediately and tell the user:
 
-> "`.qualflare/test-state.md` not found. Run `/qualflare-init` first to set up Qualflare for this project."
+> "`.qualflare/test-state.md` not found. Run `/qf-init` first to set up Qualflare for this project."
 
 Do not proceed past this step if the file is missing.
 
@@ -172,7 +172,7 @@ Use the Write tool to create each test file at the determined path.
 
 After all approved test files have been written, tell the user:
 
-> "Tests written. Run `/qualflare-run` to execute them and upload results to Qualflare."
+> "Tests written. Run `/qf-run` to execute them and upload results to Qualflare."
 
 ---
 

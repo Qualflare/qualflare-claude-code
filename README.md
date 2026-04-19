@@ -14,7 +14,7 @@ A [Claude Code](https://claude.ai/code) plugin that connects your coding session
 
 Run once in any project:
 ```
-/qualflare-init
+/qf-init
 ```
 
 This detects your tech stack, writes `.qualflare/test-state.md`, and optionally enables the Stop hook.
@@ -23,21 +23,21 @@ This detects your tech stack, writes `.qualflare/test-state.md`, and optionally 
 
 | Command | What it does |
 |---------|-------------|
-| `/qualflare-init` | First-time setup: detect stack, write state file |
-| `/qualflare-cover` | Generate tests for code you just changed |
-| `/qualflare-run` | Run tests and upload results to Qualflare |
-| `/qualflare-state` | Show current Qualflare state for this project |
-| `/qualflare-hook on\|off` | Toggle the post-session test suggestion |
+| `/qf-init` | First-time setup: detect stack, write state file |
+| `/qf-cover` | Generate tests for code you just changed |
+| `/qf-run` | Run tests and upload results to Qualflare |
+| `/qf-state` | Show current Qualflare state for this project |
+| `/qf-hook on\|off` | Toggle the post-session test suggestion |
 
 ## Stop hook
 
-When enabled during `/qualflare-init`, the Stop hook fires at the end of each Claude Code session and prints a one-line nudge if you edited source files without updating tests:
+When enabled during `/qf-init`, the Stop hook fires at the end of each Claude Code session and prints a one-line nudge if you edited source files without updating tests:
 
 ```
-🔍 Qualflare: 2 source file(s) changed without test updates. Run /qualflare-cover to add coverage.
+🔍 Qualflare: 2 source file(s) changed without test updates. Run /qf-cover to add coverage.
 ```
 
-Toggle it any time with `/qualflare-hook on` or `/qualflare-hook off`.
+Toggle it any time with `/qf-hook on` or `/qf-hook off`.
 
 ## Requirements
 

@@ -1,9 +1,9 @@
 ---
-name: qualflare-state-check
+name: qf-state
 description: >
   Show the current Qualflare state for this project — detected frameworks, test
   counts, hook setting, and last upload info. Use when the user runs
-  /qualflare-state, asks "what does Qualflare know about this project?", or
+  /qf-state, asks "what does Qualflare know about this project?", or
   asks about their current Qualflare setup.
 allowed-tools: Read Bash(qf:*)
 ---
@@ -15,7 +15,7 @@ Read both of the following files:
 - `$CLAUDE_PROJECT_DIR/.qualflare/config.json`
 
 If `test-state.md` does not exist, tell the user:
-> "No Qualflare state file found. Please run `/qualflare-init` first to set up the integration."
+> "No Qualflare state file found. Please run `/qf-init` first to set up the integration."
 
 Stop here — do not proceed without the state file.
 
@@ -55,7 +55,7 @@ Field guidance:
 - **Frameworks in use**: list each detected framework with its test file count and glob pattern, as recorded in `test-state.md`. If counts are not recorded, omit them.
 - **Frameworks suggested**: list any frameworks mentioned as suggestions in `test-state.md` (frameworks that were detected but are not yet active).
 - **Conventions**: include any test naming patterns, coverage thresholds, or other conventions recorded in `test-state.md`. Omit this section if no conventions are recorded.
-- **Stop hook**: read `config.json` for the hook enabled/disabled status. If `config.json` does not exist, show "not configured — run `/qualflare-init` to enable".
+- **Stop hook**: read `config.json` for the hook enabled/disabled status. If `config.json` does not exist, show "not configured — run `/qf-init` to enable".
 - **Qualflare backend**: determined in Step 3 below.
 
 ---
@@ -83,8 +83,8 @@ Always end the output with:
 
 ```
 Available commands:
-  /qualflare-cover   — generate tests for changed code
-  /qualflare-run     — run tests and upload results
-  /qualflare-hook on|off — toggle the Stop hook
-  /qualflare-init    — re-run setup (refreshes test-state.md)
+  /qf-cover   — generate tests for changed code
+  /qf-run     — run tests and upload results
+  /qf-hook on|off — toggle the Stop hook
+  /qf-init    — re-run setup (refreshes test-state.md)
 ```

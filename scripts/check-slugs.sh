@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # check-slugs.sh — verify that every Framework slug in the Go source
-# is referenced in skills/qualflare-init/references/framework-slugs.md
+# is referenced in skills/qf-init/references/framework-slugs.md
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,7 +24,7 @@ fi
 
 ASTRAIS_ROOT="$(cd "$QUALFLARE_AI_ROOT/.." && pwd)"
 GO_FILE="$ASTRAIS_ROOT/qualflare-cli/internal/core/domain/models.go"
-SLUGS_MD="$REPO_ROOT/skills/qualflare-init/references/framework-slugs.md"
+SLUGS_MD="$REPO_ROOT/skills/qf-init/references/framework-slugs.md"
 
 if [[ ! -f "$GO_FILE" ]]; then
   echo "ERROR: Go source not found at $GO_FILE" >&2

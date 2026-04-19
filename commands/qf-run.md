@@ -3,4 +3,4 @@ description: "Run the project's test suite and upload results to Qualflare via `
 argument-hint: "[framework-slug or results-file]"
 ---
 
-Use the qualflare-test-run skill to run tests and upload results to Qualflare. $ARGUMENTS
+Use the qf-run skill to run tests and upload results to Qualflare. $ARGUMENTS

@@ -1,8 +1,8 @@
 ---
-name: qualflare-test-run
+name: qf-run
 description: >
   Run the project's test suite and upload results to Qualflare. Use when the
-  user runs /qualflare-run, asks to "run tests and report", asks to "run tests
+  user runs /qf-run, asks to "run tests and report", asks to "run tests
   and upload", or explicitly invokes this skill after writing tests.
 allowed-tools: Read Bash(qf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
 ---
@@ -12,7 +12,7 @@ allowed-tools: Read Bash(qf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go tes
 Read `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
 
 If the file does not exist, tell the user:
-> "No Qualflare state file found. Please run `/qualflare-init` first to set up the integration, then re-run `/qualflare-run`."
+> "No Qualflare state file found. Please run `/qf-init` first to set up the integration, then re-run `/qf-run`."
 
 Stop here — do not proceed without the state file.
 
@@ -52,7 +52,7 @@ For each detected framework slug, run the appropriate command below to produce a
 **k6 note:** k6 does not natively produce JUnit XML. Run `k6 run script.js` to execute the load test. Note that upload support for k6 is limited — direct the user to the Qualflare docs for guidance on how to integrate k6 results.
 
 **Unknown frameworks:** For any slug not listed above (selenium, testcafe, karate, newman, zap, trivy, snyk, sonarqube), tell the user:
-> "I detected `<slug>` in your project but don't have a built-in run command for this framework. Please run the tool manually to generate a results file, then run `/qualflare-run <results-file>` to upload."
+> "I detected `<slug>` in your project but don't have a built-in run command for this framework. Please run the tool manually to generate a results file, then run `/qf-run <results-file>` to upload."
 
 ---
 
@@ -67,7 +67,7 @@ qf upload <results-file>
 **If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, or `login`:**
 
 Tell the user:
-> "Looks like `qf` isn't authenticated. Run `qf login` to connect your workspace, then re-run `/qualflare-run`."
+> "Looks like `qf` isn't authenticated. Run `qf login` to connect your workspace, then re-run `/qf-run`."
 
 Stop here. Do not retry the upload.
 

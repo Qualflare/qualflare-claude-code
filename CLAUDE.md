@@ -2,7 +2,7 @@
 
 ## What is this?
 
-`qualflare-ai` is a Claude Code plugin for [Qualflare](https://qualflare.com), a test management and reporting platform. Users install it via the Claude Code plugin marketplace and run `/qualflare-init` to set up their project.
+`qualflare-ai` is a Claude Code plugin for [Qualflare](https://qualflare.com), a test management and reporting platform. Users install it via the Claude Code plugin marketplace and run `/qf-init` to set up their project.
 
 ## Plugin structure
 
@@ -12,22 +12,22 @@ qualflare-ai/
 │   ├── plugin.json          # Plugin manifest (name, version, description)
 │   └── marketplace.json     # Marketplace listing
 ├── skills/
-│   ├── qualflare-init/      # First-time setup (detection, test-state.md, hook opt-in)
+│   ├── qf-init/      # First-time setup (detection, test-state.md, hook opt-in)
 │   │   ├── SKILL.md
 │   │   └── references/
 │   │       └── framework-slugs.md   # 19 canonical slugs — keep in sync with Go source
-│   ├── qualflare-test-gen/  # Generate tests for changed source files
-│   ├── qualflare-test-run/  # Run tests + qf upload
-│   └── qualflare-state-check/ # Inspect current state
+│   ├── qf-cover/  # Generate tests for changed source files
+│   ├── qf-run/  # Run tests + qf upload
+│   └── qf-state/ # Inspect current state
 ├── commands/
-│   ├── qualflare-init.md
-│   ├── qualflare-cover.md
-│   ├── qualflare-run.md
-│   ├── qualflare-state.md
-│   └── qualflare-hook.md
+│   ├── qf-init.md
+│   ├── qf-cover.md
+│   ├── qf-run.md
+│   ├── qf-state.md
+│   └── qf-hook.md
 ├── hooks/
 │   ├── hooks.json           # Registers the Stop hook
-│   ├── stop-hook.mjs        # Node script: reads transcript, suggests /qualflare-cover
+│   ├── stop-hook.mjs        # Node script: reads transcript, suggests /qf-cover
 │   └── stop-hook.test.mjs   # Tests (node --test)
 └── scripts/
     └── check-slugs.sh       # Verify framework-slugs.md matches Go source
@@ -41,7 +41,7 @@ qualflare-ai/
 
 ## Keeping framework slugs in sync
 
-`skills/qualflare-init/references/framework-slugs.md` mirrors the Go constants in:
+`skills/qf-init/references/framework-slugs.md` mirrors the Go constants in:
 ```
 qualflare-cli/internal/core/domain/models.go
 ```
@@ -67,7 +67,7 @@ From a scratch project directory:
 ```
 /plugin marketplace add /absolute/path/to/qualflare-ai
 /plugin install qualflare@qualflare
-/qualflare-init
+/qf-init
 ```
 
 ## Marker-block convention
@@ -79,4 +79,4 @@ Skills that write to user files use this marker format:
 <!-- END qualflare-ai -->
 ```
 
-Never modify content outside these markers. The `qualflare-init` skill enforces this for `CLAUDE.md` updates.
+Never modify content outside these markers. The `qf-init` skill enforces this for `CLAUDE.md` updates.

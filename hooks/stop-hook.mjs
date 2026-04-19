@@ -68,7 +68,7 @@ try {
   // 5 & 6. Print suggestion only if source files changed AND no test files were also edited
   if (sourcePaths.length > 0 && !testEdited) {
     console.log(JSON.stringify({
-      systemMessage: `🔍 Qualflare: ${sourcePaths.length} source file(s) changed without test updates. Run /qualflare-cover to add coverage.`,
+      systemMessage: `🔍 Qualflare: ${sourcePaths.length} source file(s) changed without test updates. Run /qf-cover to add coverage.`,
     }));
   }
 } catch {

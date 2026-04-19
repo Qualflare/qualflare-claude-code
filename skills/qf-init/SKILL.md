@@ -1,14 +1,14 @@
 ---
-name: qualflare-init
+name: qf-init
 description: >
   First-time Qualflare setup for this project. Detects languages and test
   frameworks, writes .qualflare/test-state.md, and configures the optional
-  Stop hook. Use when the user runs /qualflare-init or asks to "set up
+  Stop hook. Use when the user runs /qf-init or asks to "set up
   Qualflare" or "initialize Qualflare".
 allowed-tools: Read Write Edit Bash(git:*) Bash(mkdir:*) Bash(node:*)
 ---
 
-You are executing the `qualflare-init` skill. Follow every step below in order. Do not skip steps or reorder them.
+You are executing the `qf-init` skill. Follow every step below in order. Do not skip steps or reorder them.
 
 ---
 
@@ -28,7 +28,7 @@ Check whether the current working directory (`$CLAUDE_PROJECT_DIR`) contains at 
 
 Use the Read tool to check for these files. If **none** of them is present, stop and tell the user:
 
-> "I couldn't find a recognizable project root in the current directory. Please `cd` to your project root and run `/qualflare-init` again."
+> "I couldn't find a recognizable project root in the current directory. Please `cd` to your project root and run `/qf-init` again."
 
 Do not proceed past this step if no root indicator is found.
 
@@ -46,7 +46,7 @@ Then dispatch a fresh **Explore subagent** (a subordinate Claude Code agent with
 >
 > **What to read:** `package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`, `Gemfile`, `composer.json`, `pom.xml`, `build.gradle`, `.nvmrc`, `.python-version`, and any framework config files (`jest.config.*`, `playwright.config.*`, `cypress.config.*`, `.rspec`, `phpunit.xml`, `sonar-project.properties`).
 >
-> **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qualflare-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list.
+> **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list.
 >
 > **Glob test files:** For each detected framework, use the globs from the reference file to estimate the test file count (use `find` or `ls` with glob). Report: slug, estimated test count, top-level test directories.
 >
@@ -107,7 +107,7 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` with the fol
 # Qualflare Test State
 
 > Source of truth for AI coding agents working on this project's tests.
-> Regenerate with `/qualflare-init`.
+> Regenerate with `/qf-init`.
 
 ## Project
 - Name: <project-name>
@@ -141,9 +141,9 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` with the fol
 
 Ask the user:
 
-> "Enable the post-session test suggestion hook? After each Claude Code session where source files changed without matching test edits, it prints a one-line suggestion to run /qualflare-cover. This is a passive nudge only — it never writes code automatically.
+> "Enable the post-session test suggestion hook? After each Claude Code session where source files changed without matching test edits, it prints a one-line suggestion to run /qf-cover. This is a passive nudge only — it never writes code automatically.
 >
-> You can toggle it later with `/qualflare-hook on` or `/qualflare-hook off`."
+> You can toggle it later with `/qf-hook on` or `/qf-hook off`."
 
 Accept `yes`, `no`, `y`, or `n` (case-insensitive). Treat any variant of "yes"/"y" as `true` and any variant of "no"/"n" as `false`.
 
@@ -182,10 +182,10 @@ This project uses [Qualflare](https://qualflare.com) for test management.
 - Test state: `.qualflare/test-state.md` — read this at session start
 - Upload results: `qf upload <results-file>`
 - Frameworks: <slugs>
-- Skill: `qualflare-test-gen` — use when asked to write or improve tests
-- Command: `/qualflare-cover` — generate tests for changed code
-- Command: `/qualflare-run` — run tests and upload results to Qualflare
-- Command: `/qualflare-state` — inspect current Qualflare state
+- Skill: `qf-cover` — use when asked to write or improve tests
+- Command: `/qf-cover` — generate tests for changed code
+- Command: `/qf-run` — run tests and upload results to Qualflare
+- Command: `/qf-state` — inspect current Qualflare state
 <!-- END qualflare-ai -->
 ```
 
@@ -209,8 +209,8 @@ Created:
   CLAUDE.md                    — updated with Qualflare section
 
 Next steps:
-  /qualflare-cover   — generate tests for changed code
-  /qualflare-run     — run tests and upload to Qualflare
+  /qf-cover   — generate tests for changed code
+  /qf-run     — run tests and upload to Qualflare
   qf login           — connect to your Qualflare workspace (if not done yet)
 ```
 
@@ -218,7 +218,7 @@ Next steps:
 
 ## Edge cases
 
-- **`.qualflare/test-state.md` already exists:** Overwrite it after informing the user (as described in Step 4). Do not ask for confirmation beyond the note — the user already triggered re-init by running `/qualflare-init`.
+- **`.qualflare/test-state.md` already exists:** Overwrite it after informing the user (as described in Step 4). Do not ask for confirmation beyond the note — the user already triggered re-init by running `/qf-init`.
 - **CLAUDE.md markers already exist:** Update the content between the markers in-place. Do not append a second block. Do not touch content outside the markers. (Case B above.)
 - **User provides no notes in Step 3:** Record `None` in the `## Notes` section.
 - **Subagent detects vitest:** Map it to the `jest` slug. Note in the framework table: `jest (vitest)`.

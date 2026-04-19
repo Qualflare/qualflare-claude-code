@@ -3,4 +3,4 @@ description: "Generate tests for source files changed in the current session. Re
 argument-hint: "[optional file glob or path]"
 ---
 
-Use the qualflare-test-gen skill to propose tests for changed source files. $ARGUMENTS
+Use the qf-cover skill to propose tests for changed source files. $ARGUMENTS

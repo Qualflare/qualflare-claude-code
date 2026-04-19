@@ -3,4 +3,4 @@ description: "Show the current Qualflare state for this project: detected framew
 argument-hint: ""
 ---
 
-Use the qualflare-state-check skill to display the current Qualflare state for this project.
+Use the qf-state skill to display the current Qualflare state for this project.
