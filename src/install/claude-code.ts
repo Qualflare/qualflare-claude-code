@@ -20,7 +20,7 @@ export const claudeCodeInstaller: Installer = {
     if (skillResult === 'wrote') {
       logger.wrote(skillRel)
     } else {
-      logger.skipped(skillRel)
+      logger.exists(skillRel)
     }
     files.push({ path: skillPath, action: skillResult })
 
@@ -32,7 +32,7 @@ export const claudeCodeInstaller: Installer = {
     if (commandResult === 'wrote') {
       logger.wrote(commandRel)
     } else {
-      logger.skipped(commandRel)
+      logger.exists(commandRel)
     }
     files.push({ path: commandPath, action: commandResult })
 
@@ -42,6 +42,8 @@ export const claudeCodeInstaller: Installer = {
     const claudeMdRel = relative(projectRoot, claudeMdPath)
     if (claudeMdResult === 'skipped') {
       logger.skipped(claudeMdRel)
+    } else if (claudeMdResult === 'appended') {
+      logger.appended(claudeMdRel)
     } else {
       logger.wrote(claudeMdRel)
     }

@@ -19,7 +19,7 @@ export const continueInstaller: Installer = {
     if (result === 'wrote') {
       logger.wrote(rel)
     } else {
-      logger.skipped(rel)
+      logger.exists(rel)
     }
     files.push({ path: rulesPath, action: result })
 

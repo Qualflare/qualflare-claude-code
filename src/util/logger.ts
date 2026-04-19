@@ -31,7 +31,15 @@ export const logger = {
     log.step(pc.green(`  wrote: ${filePath}`))
   },
 
+  appended(filePath: string): void {
+    log.step(pc.green(`  appended: ${filePath}`))
+  },
+
   skipped(filePath: string): void {
     log.step(pc.dim(`  skipped: ${filePath} (already up to date)`))
+  },
+
+  exists(filePath: string): void {
+    log.step(pc.dim(`  exists: ${filePath} (skipping — customize to your needs)`))
   },
 }
