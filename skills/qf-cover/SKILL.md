@@ -2,10 +2,11 @@
 name: qf-cover
 description: >
   Propose and write new tests for source files changed in the current session.
+  Detects which functions are already covered and only proposes tests for gaps.
   Use when the user runs /qf-cover, asks to "add test coverage", asks to
   "write tests", reacts to the Qualflare hook suggestion, or explicitly invokes
-  this skill.
-allowed-tools: Read Write Edit Glob Bash(git diff:*) Bash(git status:*)
+  this skill. Pass --all to cover an entire file/directory regardless of what changed.
+allowed-tools: Read Write Edit Glob Bash(git diff:*) Bash(git status:*) Bash(grep:*)
 ---
 
 You are executing the `qf-cover` skill. Follow every step below in order. Do not skip steps or reorder them.
@@ -27,8 +28,14 @@ If the file exists, extract the following information:
 - **Framework slugs in use**: parse the rows of the `## Frameworks in use` table — collect every value in the `Slug` column.
 - **Naming conventions**: read the `## Conventions` section. Capture the value of `Test naming` (e.g., `*.test.ts`, `*_test.go`).
 - **Project name**: read the `## Project` section and capture the `Name` field.
+- **Package list**: parse the `## Packages` table (if present) — collect every row as `{ path, qualflareProject }`. If the `## Packages` table is absent (legacy format), create a synthetic single entry: `{ path: "(root)", qualflareProject: <project name> }`.
 
-Keep these values in memory for use in later steps.
+Keep all these values in memory for use in later steps.
+
+**`--all` flag detection:** If `$ARGUMENTS` starts with `--all` (e.g., `/qf-cover --all` or `/qf-cover --all src/utils/`):
+- Set an **allMode** flag to `true`.
+- Strip `--all` from `$ARGUMENTS` and treat the remainder as the path/glob argument.
+- `allMode` means: cover the entire file/directory scope, not just session-changed functions. When `allMode` is true, Step 4's function-level coverage check runs for ALL functions in each file (not just session-changed ones), and the area picker from the cold-start flow applies if more than 8 source files are in scope.
 
 ---
 
@@ -59,8 +66,13 @@ Use `Glob` with each of the following patterns and sum the total match count. Ex
 
 1. **Scan for source files.** Use `Glob` with pattern `**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,go,py,rb,php,rs,java,kt}`. Apply the Conditions 1–3 filter from Step 3 (exclude test files, excluded directories, config files, type-only files) to the results.
 
-2. **Group by area.** For each source file, determine its area as the **first two directory segments under the first conventional source root** found in the path (`src/`, `lib/`, `internal/`, `app/`, `pkg/`). If the file has no conventional source root in its path, group it under `(root)`.
+2. **Group by area.** For monorepos (package list has more than one entry), group by `<package-path>/<first-subdir-within-package>`. For single-package projects, group by the **first two directory segments under the first conventional source root** found in the path (`src/`, `lib/`, `internal/`, `app/`, `pkg/`). If the file has no conventional source root in its path, group it under `(root)`.
 
+   Monorepo examples:
+   - `packages/web/src/api/user.ts` → area `packages/web/src/`
+   - `packages/api/internal/handlers/login.go` → area `packages/api/internal/`
+
+   Single-package examples:
    - `src/api/user.ts` → area `src/api/`
    - `internal/handlers/login.go` → area `internal/handlers/`
    - `main.py` → area `(root)`
@@ -73,15 +85,13 @@ Use `Glob` with each of the following patterns and sum the total match count. Ex
    No existing tests found. Let's bootstrap coverage one area at a time.
 
    Source areas (<total> files total):
-   1. src/api/         (15 files)
-   2. src/services/    (22 files)
-   3. src/utils/       (8 files)
-   4. src/components/  (37 files)
-   5. src/hooks/       (5 files)
+   1. packages/web/src/     (15 files)
+   2. packages/web/utils/   (8 files)
+   3. packages/api/internal/ (22 files)
 
    Which areas should we cover in this round?
-   - By number or name: "1, 3" or "api, utils"
-   - Explicit files: "src/api/user.ts src/api/auth.ts"
+   - By number or name: "1, 3" or "web/src, api/internal"
+   - Explicit files: "packages/web/src/user.ts packages/api/internal/auth.go"
    - Everything: "all" (not recommended unless the project is tiny)
    ```
 
@@ -136,8 +146,15 @@ The file extension must be one of: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`,
 **Condition 3 — Path does not contain excluded directory components:**
 The path must NOT contain any of: `node_modules/`, `vendor/`, `dist/`, `build/`, `.git/`, `.next/`, `__pycache__/`
 
-**Filtering by `$ARGUMENTS`:**
-If the `$ARGUMENTS` variable is non-empty and contains a file glob or path, further filter the list to include only files whose path matches that pattern. Treat the argument as a glob pattern.
+**Package attribution:** For each file that passes Conditions 1–3, determine which package it belongs to by finding the longest-prefix match from the package list (from Step 1). For example, if the package list contains `packages/web` and `packages/api`, then `packages/web/src/user.ts` belongs to `packages/web`. Files with no matching package prefix fall under `(root)` only if `(root)` is in the package list; otherwise they are reported as orphaned (warn the user but do not process them further).
+
+**Filtering by `$ARGUMENTS`** (after stripping `--all` if present — tie-breaker: any value containing `/` is a package path; anything else is a file glob):
+- If `$ARGUMENTS` contains `/` and matches a package path from the package list → filter to files belonging only to that package.
+- If `$ARGUMENTS` contains `/` but does not match a package path → treat as a file glob pattern and filter files whose path matches.
+- If `$ARGUMENTS` is a single word without `/` → treat as a file glob pattern.
+- If `$ARGUMENTS` is empty → no additional filtering.
+
+**`allMode` source collection:** When `allMode` is true, skip `git diff` / `git status` entirely. Instead, use `Glob` with source-extension patterns (`**/*.{ts,tsx,js,jsx,go,py,rb,php,rs,java,kt}`) scoped to the path from `$ARGUMENTS` (or the whole project if `$ARGUMENTS` is empty). Apply Conditions 1–3 to the results. If more than 8 files are collected, apply the same area-picker flow as the cold-start path in Step 2 before proceeding.
 
 **If no source files remain after filtering**, tell the user:
 
@@ -147,11 +164,15 @@ Then stop.
 
 ---
 
-## Step 4 — Check for existing tests
+## Step 4 — Analyze coverage per file
 
-> **Skip this step if you entered from Step 2's cold-start flow** — the working file list is already known to be untested.
+> **Skip this step if you entered from Step 2's cold-start flow** — the working file list is already known to be untested. Jump straight to Step 5 with all functions marked as uncovered.
 
-For each source file that passed the Step 3 filter, check whether an existing test already covers it. This covers both co-located tests and centralized test-tree layouts. Use the `Glob` tool to probe the paths below. A test is considered present if ANY match is found.
+For each source file that passed the Step 3 filter, run the two sub-steps below.
+
+### 4a — Locate an existing test file
+
+Use the `Glob` tool to probe the paths below. A test file is considered found if ANY match is found.
 
 For a source file at `<dir>/<base>.<ext>`:
 
@@ -176,46 +197,117 @@ For a source file at `<dir>/<base>.<ext>`:
   - `tests/<rest>/<base>.test.<ext>`
   - `__tests__/<rest>/<base>.<ext>`
 
-If ALL source files in the list already have an existing test, tell the user:
+**If NO test file is found:** mark the source file as "no coverage" — all functions need tests. Skip 4b and proceed to the next file.
 
-> "All changed source files already have tests. Nicely done!"
+### 4b — Function-level coverage analysis (only when a test file exists)
+
+1. **Read the source file.** Extract the names of all testable units using language-specific heuristics:
+   - **TypeScript/JS**: `export function <name>`, `export const <name> =`, `export class <name>`, `export async function <name>`, `export default function <name>`. Exclude type aliases, interfaces, and enums.
+   - **Go**: Top-level functions whose name starts with an uppercase letter: `func [A-Z]\w+(`. Exclude `main` and `init`.
+   - **Python**: Module-level `def` functions and class methods not starting with `_`. Exclude `__dunder__` methods.
+   - **Ruby**: `def` methods not starting with `_`. Include class methods (`def self.<name>`).
+   - **PHP**: `public function \w+` and `public static function \w+`.
+   - **Java/Kotlin**: `public` methods (non-constructor).
+
+   Count the total: **M functions**.
+
+2. **Read the existing test file.** For each function name from step 1, check whether that name appears as a substring anywhere in the test file content. A function is considered **covered** if its name is found.
+
+   **False-negative risk:** Short or common names (e.g., `validate`, `parse`, `get`) may match incidentally — `validate` hits `invalidate`, `validateToken`, or even a string literal `"validate"`. When a function name is 6 characters or fewer, or is a common English word, err on the side of inclusion: mark it as **uncovered** and include it in proposals rather than silently skipping it. A small false positive (proposing a test that already exists) is cheaper than a missed gap.
+
+   Count the covered: **N functions covered**.
+
+3. **Compute coverage gap:** Record `coveredCount = N`, `totalCount = M`, `uncoveredFunctions = [names not found in test file]`.
+
+4. **Decision:**
+   - If `uncoveredFunctions` is empty (N === M): this file is fully covered. Remove it from the working list.
+   - If `uncoveredFunctions` is non-empty: keep it in the working list. Attach the coverage metadata so Step 5 knows which functions to target.
+
+### 4c — Summary after analysis
+
+After analyzing all files, if ALL files were removed (fully covered), tell the user:
+
+> "All changed source files already have tests for every exported function. Nicely done!"
+
+If `allMode` is true and all files are fully covered, say:
+
+> "Full coverage detected — every exported function in the selected scope has a corresponding test."
 
 Then stop.
 
-Remove from the working list any source file that already has a test. Continue with only the files that lack tests.
+Otherwise, continue to Step 5 with only the files that have uncovered functions. Each file carries its coverage metadata: `{ file, testFile: path|null, coveredCount, totalCount, uncoveredFunctions[] }`.
 
 ---
 
 ## Step 5 — Read source files and propose tests
 
-For each source file without a co-located test, do the following in order:
+For each source file in the working list, do the following in order:
 
-1. **Read the source file** using the Read tool.
+1. **Read the source file** using the Read tool (skip if already read in Step 4).
 
-2. **Analyze the file** to identify:
-   - Exported functions, classes, or public methods (the primary API surface)
-   - Key logic branches (conditionals, loops, early returns, error paths)
-   - Edge cases visible from the code (empty inputs, nulls, zero values, boundary values)
+2. **Determine the target function set:**
+   - If the file has no test file (`testFile === null`): all functions are targets.
+   - If the file has a test file: only the `uncoveredFunctions` list from Step 4 are targets. Do NOT propose tests for already-covered functions.
 
-3. **Propose 2–5 test cases** based on complexity. Every proposal must include:
-   - A happy path test for the main function or class behavior
+3. **Rank targets by importance** before proposing:
+   - **Tier 1 — Public API**: exported or public functions/methods. Propose these first.
+   - **Tier 2 — Complex internals**: non-exported functions that contain conditionals, loops, error handling, or more than ~10 lines of logic.
+   - **Tier 3 — Simple helpers**: trivial private functions (single expression, no branches). Propose these last; it is acceptable to omit Tier 3 functions when they are clearly wrappers with no meaningful behavior to test.
+
+4. **Propose 2–5 test cases per function** based on complexity. For each target function, the proposal must include:
+   - A happy path test for the main behavior
    - At least one edge case (empty input, null/nil/undefined, boundary value)
-   - An error or exception case if the code contains error handling
+   - An error or exception case if the function contains error handling
 
-4. **Format the proposal** as a numbered list under a header for that file:
+5. **Show the coverage gap header** above each file's proposals:
+   - If the file has a test file: show the gap fraction. Example: `src/utils/formatter.ts — 2/5 functions covered, 3 uncovered`
+   - If the file has no test file: show `src/utils/formatter.ts — no tests yet`
+
+6. **Format the proposals.** When the working list contains files from **more than one package**, group by package:
 
    ```
-   Proposed tests for src/utils/formatter.ts:
+   Proposed tests for packages/web:
+
+     src/utils/formatter.ts — 2/5 functions covered, 3 uncovered
+       [Tier 1 – Public API]
+       1. formatCurrency() with a positive number returns "$1,234.56"
+       2. formatCurrency() with zero returns "$0.00"
+       3. formatCurrency() with a negative number returns "-$1.00"
+       [Tier 2 – Complex internals]
+       4. parseLocale() with unsupported locale falls back to "en-US"
+       5. parseLocale() with null throws TypeError
+
+   Proposed tests for packages/api:
+
+     internal/auth/token.go — no tests yet
+       [Tier 1 – Public API]
+       1. ValidateToken returns nil error for a valid token
+       2. ValidateToken returns ErrExpired for an expired token
+       3. ValidateToken returns ErrMalformed for an empty string
+   ```
+
+   When all files belong to a **single package** (including `(root)`), use the flat format without package headers:
+
+   ```
+   src/utils/formatter.ts — 2/5 functions covered, 3 uncovered
+   [Tier 1 – Public API]
    1. formatDate() with a valid Date returns correct ISO string
    2. formatDate() with null throws TypeError
+   [Tier 2 – Complex internals]
    3. formatDate() with epoch 0 returns "1970-01-01T00:00:00.000Z"
    ```
 
-5. Repeat for every source file without a test.
+7. Repeat for every source file in the working list.
 
 After listing all proposals, print a one-line summary:
 
-> "**Summary:** \<N\> file(s) · \<M\> test cases proposed"
+> "**Summary:** \<N\> file(s) across \<P\> package(s) · \<M\> test cases proposed · \<covered\>/\<total\> functions already covered"
+
+For single-package projects:
+
+> "**Summary:** \<N\> file(s) · \<M\> test cases proposed · \<covered\>/\<total\> functions already covered"
+
+Omit the "already covered" portion when no test files exist yet (cold start or `testFile === null` for all files).
 
 Then ask:
 
@@ -239,7 +331,7 @@ For each approved source file, write the test file. Follow these rules:
 Use the naming convention from `.qualflare/test-state.md` (`## Conventions → Test naming`). If no convention is recorded, infer one by searching for existing test files in the project (e.g., look for `*.test.ts` or `*_test.go` patterns). If still ambiguous, place the test file co-located with the source file using the `<base>.test.<ext>` pattern.
 
 **Framework selection:**
-Choose the framework based on the slugs extracted in Step 1 and the source file's language:
+Choose the framework based on the slugs extracted in Step 1 and the source file's language. For monorepos, use the slug recorded for that file's package in `## Frameworks in use`.
 
 - **`jest`** (TypeScript/JavaScript): Write using `describe`/`it`/`expect` syntax. If the project uses vitest (check for `vitest` in `package.json` devDependencies), import from `vitest` instead of `@jest/globals`. Otherwise use jest imports. Use ES module imports (`import { ... } from '../<source>.js'`). For TypeScript, preserve types in assertions.
 - **`playwright`** (TypeScript/JavaScript, E2E): Write using `test`/`expect` blocks with `@playwright/test` imports. Only generate Playwright tests if the source file is clearly a page/component, not a utility.
@@ -256,7 +348,9 @@ Choose the framework based on the slugs extracted in Step 1 and the source file'
 - Prefer testing behavior (inputs and outputs) over implementation details.
 - Write all test cases from the approved proposal. Do not add extra tests beyond what was proposed and approved.
 
-Use the Write tool to create each test file at the determined path.
+**Append vs create:**
+- If `testFile === null` (no existing test file): use the `Write` tool to create a new file at the determined path.
+- If `testFile` exists (partial coverage): use the `Edit` tool to append the new test cases to the end of the existing file, inside the same `describe` block if one exists, or as new top-level test functions if the file uses a flat structure. Do NOT rewrite or remove any existing tests.
 
 ---
 
@@ -271,6 +365,9 @@ After all approved test files have been written, tell the user:
 ## Edge cases
 
 - **`$ARGUMENTS` is empty**: Process all changed source files without additional path filtering (Step 3 still applies).
+- **`--all` with no path** (e.g., `/qf-cover --all`): Collect all source files in the project root. Apply the area-picker flow if > 8 files. Useful for bootstrapping coverage on an existing codebase.
+- **`--all` with a path** (e.g., `/qf-cover --all src/utils/`): Scope the glob to that path. If ≤ 8 files are found, skip the area picker and go straight to Step 4.
+- **Function already covered but logic changed**: The heuristic (function name appears in test file) may produce false positives when a function was renamed. When in doubt, include the function in proposals — a small false positive is better than a missed gap.
 - **Source file is a configuration file** (e.g., `vite.config.ts`, `jest.config.ts`, `next.config.js`): Exclude it from the list — configuration files do not need unit tests. Add this exclusion in Step 3 by checking if the filename contains `config` or `setup` as a whole word segment.
 - **Source file is a type definition only** (e.g., `types.ts`, `*.d.ts`): Exclude it — type-only files have no runtime behavior to test.
 - **Multiple frameworks detected for the same language**: Prefer the framework whose config file is present at the project root. If still ambiguous, ask the user which framework to use before writing any test files.
@@ -281,3 +378,5 @@ After all approved test files have been written, tell the user:
 - **Cold-start project with ≤ 8 source files total**: Skip the area picker — just treat all source files as the working list and proceed directly to Step 5.
 - **Cold-start user selects an area whose file count is > 8**: Apply the per-round cap and prompt to narrow further. Do not silently truncate the list.
 - **Cold-start with unusual source layout** (e.g., `packages/*/src/`): All such files fall back to the `(root)` area group. If everything lands in `(root)`, list files individually instead of areas so the user can choose meaningfully.
+- **Changed file belongs to no package** (no prefix match): Warn the user that the file is outside any known package and skip it. Prompt them to re-run `/qf-init` if the package list is outdated.
+- **Monorepo with files in multiple packages**: Group proposals by package in Step 5. Each group reads and proposes tests for its own files only.

@@ -4,10 +4,10 @@ description: >
   Run the project's test suite and upload results to Qualflare. Use when the
   user runs /qf-run, asks to "run tests and report", asks to "run tests
   and upload", or explicitly invokes this skill after writing tests.
-allowed-tools: Read Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*)
+allowed-tools: Read Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(cd:*) Bash(cp:*)
 ---
 
-## Step 1 — Read test state
+## Step 1 — Read test state and build work queue
 
 Read `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
 
@@ -16,51 +16,75 @@ If the file does not exist, tell the user:
 
 Stop here — do not proceed without the state file.
 
-From the state file, extract:
-- The list of framework slugs in use
-- The project name
+**Parse `## Packages` table** (if present): build a map of `path → qualflareProject`. If the `## Packages` table is absent (legacy format), create a synthetic single entry using the project name from the `## Project` section:
+```
+{ path: "(root)", qualflareProject: <Name from ## Project section> }
+```
 
-If `$ARGUMENTS` is provided (e.g. a framework slug such as `jest`, or a file glob such as `src/**/*.test.ts`), filter execution to only that scope. Skip frameworks that do not match the argument.
+**Parse `## Frameworks in use` table**: read every row's `Package`, `Slug`, and `Top-level paths` columns. If the table has no `Package` column (legacy format without monorepo support), treat all rows as belonging to `(root)`.
+
+**Build the per-package work queue** — one item per (Package, Slug) row:
+```
+[{ package, qualflareProject, slug, cwd }]
+```
+Where `cwd` = `$CLAUDE_PROJECT_DIR` for `(root)`, or `$CLAUDE_PROJECT_DIR/<package-path>` for named packages.
+
+**Filter via `$ARGUMENTS`** (tie-breaker: any value containing `/` is a package path; anything else is a slug):
+- `$ARGUMENTS` contains `/` → treat as a package path prefix. Keep only queue items whose `package` field starts with that prefix.
+- `$ARGUMENTS` is a single word without `/` → treat as a framework slug. Keep only items whose `slug` matches.
+- `$ARGUMENTS` contains both a path and a slug (e.g., `packages/web jest`) → apply both filters.
+- `$ARGUMENTS` is empty → no filtering; run the full queue.
+
+If the filtered queue is empty, tell the user:
+> "No matching packages or frameworks found for `<$ARGUMENTS>`. Check `/qf-state` for available packages and slugs."
+
+Then stop.
 
 ---
 
-## Step 2 — Run tests per framework
+## Step 2 — Run tests per package/framework
 
-Before running any framework, create the results directory:
+Before running any framework, create the results subdirectory for each package in the queue:
 
 ```bash
-mkdir -p $CLAUDE_PROJECT_DIR/.qualflare/results
+mkdir -p $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>
 ```
 
-For each detected framework slug, run the appropriate command below to produce a machine-readable results file. Run the commands from `$CLAUDE_PROJECT_DIR`.
+Where `<package-dir>` is:
+- `root` when the package path is `(root)`
+- The package path verbatim for named packages (e.g., `packages/web`), creating nested subdirs like `.qualflare/results/packages/web/`
 
-| Slug | Command | Output file |
-|------|---------|-------------|
-| jest | `npx jest --json --outputFile=.qualflare/results/jest.json` | `.qualflare/results/jest.json` |
-| vitest | Not a stored slug — vitest projects use the `jest` slug. Run: `npx vitest run --reporter=json --outputFile=.qualflare/results/jest.json` and upload under slug `jest`. | `.qualflare/results/jest.json` |
-| mocha | `npx mocha --reporter xunit > .qualflare/results/mocha.xml` | `.qualflare/results/mocha.xml` |
-| pytest | `pytest --junit-xml=.qualflare/results/pytest.xml`  (or: `python -m pytest --junit-xml=.qualflare/results/pytest.xml` in virtualenv) | `.qualflare/results/pytest.xml` |
-| golang | `go test ./... -json > .qualflare/results/golang.json` | `.qualflare/results/golang.json` |
-| playwright | `npx playwright test --reporter=junit --output-file=.qualflare/results/playwright.xml` | `.qualflare/results/playwright.xml` |
-| cypress | `npx cypress run --reporter junit --reporter-options mochaFile=.qualflare/results/cypress.xml` | `.qualflare/results/cypress.xml` |
-| rspec | `bundle exec rspec --format RspecJunitFormatter --out .qualflare/results/rspec.xml` | `.qualflare/results/rspec.xml` |
-| phpunit | `./vendor/bin/phpunit --log-junit .qualflare/results/phpunit.xml` | `.qualflare/results/phpunit.xml` |
+For each item in the work queue, `cd` to the item's `cwd` and run the command from the table below. Always write output to `$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/<slug>.<ext>` — use the absolute project-root path so the output file location is unambiguous regardless of `cwd`.
+
+| Slug | Command (run from `cwd`) | Output file |
+|------|--------------------------|-------------|
+| jest | `npx jest --json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json` | `.qualflare/results/<package-dir>/jest.json` |
+| vitest | `npx vitest run --reporter=json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json` (upload as slug `jest`) | `.qualflare/results/<package-dir>/jest.json` |
+| mocha | `npx mocha --reporter xunit > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/mocha.xml` | `.qualflare/results/<package-dir>/mocha.xml` |
+| pytest | `pytest --junit-xml=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/pytest.xml` | `.qualflare/results/<package-dir>/pytest.xml` |
+| golang | `go test ./... -json > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/golang.json` | `.qualflare/results/<package-dir>/golang.json` |
+| playwright | `npx playwright test --reporter=junit --output-file=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/playwright.xml` | `.qualflare/results/<package-dir>/playwright.xml` |
+| cypress | `npx cypress run --reporter junit --reporter-options mochaFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/cypress.xml` | `.qualflare/results/<package-dir>/cypress.xml` |
+| rspec | `bundle exec rspec --format RspecJunitFormatter --out $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/rspec.xml` | `.qualflare/results/<package-dir>/rspec.xml` |
+| phpunit | `./vendor/bin/phpunit --log-junit $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/phpunit.xml` | `.qualflare/results/<package-dir>/phpunit.xml` |
 | junit | See note below | See note below |
 | cucumber | See note below | varies |
 | k6 | See note below | n/a |
 
-**junit note:** JUnit tests are run by Maven or Gradle. Check for `pom.xml` to determine Maven, or `build.gradle` / `build.gradle.kts` for Gradle.
-- Maven: `mvn test` → results in `target/surefire-reports/*.xml`. Copy one report: `cp target/surefire-reports/*.xml .qualflare/results/junit.xml`
-- Gradle: `gradle test` → results in `build/test-results/**/*.xml`. Copy one report: `cp build/test-results/test/*.xml .qualflare/results/junit.xml`
+**junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle).
+- Maven: `mvn test` → `cp target/surefire-reports/*.xml $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/junit.xml`
+- Gradle: `gradle test` → `cp build/test-results/test/*.xml $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/junit.xml`
 
 Upload with `--format junit`.
 
-**cucumber note:** Run varies by language. For JavaScript use `cucumber-js`; for Java use the cucumber JUnit runner. Capture JUnit XML output. The exact command depends on how the project has configured cucumber — inspect the project scripts first.
+**cucumber note:** Run varies by language. For JavaScript use `cucumber-js`; for Java use the cucumber JUnit runner. Capture JUnit XML output. Inspect the project scripts to determine the exact command.
 
-**k6 note:** k6 does not natively produce JUnit XML. Run `k6 run script.js` to execute the load test. Note that upload support for k6 is limited — direct the user to the Qualflare docs for guidance on how to integrate k6 results.
+**k6 note:** k6 does not natively produce JUnit XML. Run `k6 run script.js` to execute the load test. Upload support for k6 is limited — direct the user to the Qualflare docs.
 
 **Unknown frameworks:** For any slug not listed above (selenium, testcafe, karate, newman, zap, trivy, snyk, sonarqube), tell the user:
 > "I detected `<slug>` in your project but don't have a built-in run command for this framework. Please run the tool manually to generate a results file, then run `/qf-run <results-file>` to upload."
+
+**Continue-on-error:** If a test run command exits non-zero due to **test failures** (not a missing tool or configuration error), note the failure, record it for the summary, and **continue** to the next item in the queue. Do not abort the entire run for test failures.
 
 ---
 
@@ -78,28 +102,37 @@ If the command exits with code 127 (command not found) or is otherwise unavailab
 
 Stop here — do not attempt uploads without the CLI.
 
-For each result file produced in Step 2, run `qf upload` with the explicit `--format` flag matching the framework slug used to produce the file:
+For each result file produced in Step 2, run `qf upload` with `--format` and `--project`:
 
 ```bash
-qf upload <results-file> --format <slug>
+qf upload <results-file> --format <slug> --project <qualflareProject>
 ```
 
-For example: `qf upload .qualflare/results/jest.json --format jest` or `qf upload .qualflare/results/playwright.xml --format playwright`.
+The `<qualflareProject>` is the value from the `## Packages` table row whose `Path` matches the current package. If no match is found, fall back to the project name from the `## Project` section.
 
 **If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, or `login`:**
 
 Tell the user:
 > "Looks like `qf` isn't authenticated. Run `qf login` to connect your workspace, then re-run `/qf-run`."
 
-Stop here. Do not retry the upload.
+Stop here. Do not retry any remaining uploads.
 
-**For any other non-zero exit code:** Show the full error output to the user and suggest they check the [Qualflare docs](https://qualflare.com/docs) for troubleshooting.
+**For any other non-zero exit code:** Log the failure (package + slug + error message) and **continue** with the remaining items.
+
+After all uploads are attempted, if any non-auth failures occurred, print a grouped failure list:
+
+```
+Upload failures:
+  packages/api / golang  — <error message>
+```
 
 ---
 
 ## Step 4 — Print summary
 
-After all uploads are complete, print a results summary in this format:
+After all uploads are attempted, print a results summary.
+
+**Single-package format** (work queue had only one package, i.e., `(root)`):
 
 ```
 Test run complete:
@@ -112,13 +145,37 @@ playwright  ✅        12       0        0
 Uploaded to Qualflare. ✅
 ```
 
-Parse the result files to populate Passed / Failed / Skipped counts where possible:
+**Multi-package format** (work queue had more than one package):
+
+```
+Test run complete:
+
+packages/web  (@acme/web)
+  jest         ✅   47 passed / 0 failed / 2 skipped
+  playwright   ✅   12 passed / 0 failed / 0 skipped
+
+packages/api  (acme-api)
+  golang       ❌   10 passed / 2 failed / 0 skipped
+    • internal/auth: TestToken_Expired
+    • internal/auth: TestToken_Malformed
+
+Uploaded to Qualflare ✅  (2 of 3 frameworks passed)
+```
+
+Parse result files to populate Passed / Failed / Skipped counts where possible:
 - For JSON output (jest, golang): parse the JSON to extract counts.
-- For JUnit XML output: count `<testcase>` elements, failures, errors, and skipped elements.
+- For JUnit XML output: count `<testcase>` elements, `<failure>` / `<error>` children, and `skipped` attributes.
 
 If a result file cannot be parsed, show `—` for the counts.
 
-If `qf upload` printed a URL or run ID in its stdout or stderr output, include it below the table, e.g.:
+For failed test runs, list the first 3–5 failing test names in the summary if they can be extracted from the result file.
+
+If `qf upload` printed a URL or run ID in its stdout or stderr, include it below the table:
 ```
 View run: https://app.qualflare.com/runs/abc123
+```
+
+If any frameworks had test failures (❌ status), append:
+```
+To fix failing tests automatically: /qf-fix
 ```

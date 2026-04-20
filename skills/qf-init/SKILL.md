@@ -34,13 +34,51 @@ Do not proceed past this step if no root indicator is found.
 
 ---
 
-## Step 2 — Detect stack via subagent
+## Step 2 — Detect workspaces
 
-Tell the user: "Detecting your project's tech stack..."
+Check whether the project is a monorepo by looking for any of these signals at `$CLAUDE_PROJECT_DIR`:
 
-Then dispatch a fresh **Explore subagent** (a subordinate Claude Code agent with its own tool calls) with the following brief. Include the brief verbatim — substitute `$CLAUDE_PROJECT_DIR` with the actual project directory path and `${CLAUDE_PLUGIN_ROOT}` with the actual path to the plugin's installed directory:
+1. **npm/pnpm workspaces**: Read `package.json`. If it contains a top-level `workspaces` key (either an array or an object with a `packages` array), the project is a monorepo.
+2. **pnpm workspace file**: Check whether `pnpm-workspace.yaml` exists.
+3. **Multiple Go modules**: Use Glob with pattern `**/go.mod`. If more than one file is found and at least two are in subdirectories matching `apps/`, `services/`, `packages/`, `cmd/`, or `libs/`, the project is a monorepo.
+4. **Multiple Python packages**: Use Glob with pattern `**/pyproject.toml`. If more than one file is found under `apps/`, `services/`, `packages/`, or `libs/`, the project is a monorepo.
 
-> "You are a project stack detector. Read the manifest and config files in the project at: `$CLAUDE_PROJECT_DIR`.
+**If NO signal matches — single-package project:**
+
+Create a synthetic package list with one entry:
+- Path: `(root)`
+- Name: inferred from the root manifest — value of `package.json` `"name"` field, last segment of `go.mod` module path (e.g., `module github.com/acme/api` → `api`), `pyproject.toml` `[project].name`, or the project directory name as a fallback.
+
+Proceed to Step 3 with this single-entry list.
+
+**If ANY signal matches — monorepo:**
+
+Enumerate packages. The source depends on the signal:
+- **npm/pnpm workspaces**: resolve the workspace glob patterns (e.g., `packages/*`) from `package.json` `workspaces` or `pnpm-workspace.yaml` `packages:` to get the actual subdirectory list. Use Glob to expand each pattern.
+- **Multiple go.mod**: each directory containing a `go.mod` (other than the root, if there is a root one) is a package.
+- **Multiple pyproject.toml**: each directory containing a `pyproject.toml` (other than the root) is a package.
+
+For each package directory found, build a package entry:
+- **Path**: directory path relative to `$CLAUDE_PROJECT_DIR` (e.g., `packages/web`).
+- **Name**: read the manifest in that directory — `package.json` `"name"`, last segment of `go.mod` module path, `pyproject.toml` `[project].name`. If no manifest or no name field, fall back to the directory path itself.
+
+**Edge case:** If workspace declarations exist but no matching directories are found on disk, treat the project as single-package and emit a note: "Workspace configuration found but no matching package directories exist — treating as single-package."
+
+---
+
+## Step 3 — Detect stack via subagent
+
+Tell the user: `"Detecting your project's tech stack..."`
+
+For monorepos with more than one package: `"Detecting tech stack for <N> packages..."`
+
+Dispatch **one Explore subagent per package**. Each subagent is scoped to its package directory. Compute `<PACKAGE_DIR>` per package:
+- If the package path is `(root)`: `<PACKAGE_DIR>` = `$CLAUDE_PROJECT_DIR`
+- Otherwise: `<PACKAGE_DIR>` = `$CLAUDE_PROJECT_DIR/<package-path>`
+
+Use this brief verbatim for each subagent — substitute `<PACKAGE_DIR>` and `${CLAUDE_PLUGIN_ROOT}` with actual paths:
+
+> "You are a project stack detector. Read the manifest and config files in the package at: `<PACKAGE_DIR>`. Only report frameworks for files under this package directory — do not scan the whole repository.
 >
 > Your goal: identify all programming languages, test frameworks in use, and test file locations.
 >
@@ -48,24 +86,37 @@ Then dispatch a fresh **Explore subagent** (a subordinate Claude Code agent with
 >
 > **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list.
 >
-> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count. Report: slug, estimated test count, top-level test directories.
+> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count. Report: slug, estimated test count, top-level test directories (paths relative to `$CLAUDE_PROJECT_DIR`, not `<PACKAGE_DIR>`).
 >
 > **Suggestions:** If you see strong indicators for a framework the project doesn't currently use (e.g., React SPA with no E2E framework), note it as a suggestion.
 >
 > **Return a structured report with these sections:**
 > 1. Languages detected (list)
-> 2. Frameworks in use: table of slug | file count | top-level paths
+> 2. Frameworks in use: table of slug | file count | top-level paths (relative to project root)
 > 3. Frameworks suggested (not yet installed): list of slug + reason
 > 4. Naming conventions observed (e.g., `*.test.ts`, `*_test.go`)
 > 5. Coverage threshold (from `jest.config.*`, `pyproject.toml`, etc. — or 'none detected')"
 
-Wait for the subagent to complete and collect its structured report.
+Wait for all subagents to complete. Collect each package's structured report.
 
 ---
 
-## Step 3 — Confirm with user
+## Step 4 — Confirm with user
 
-Present the detection report from Step 2 to the user in a readable format. Then ask:
+Present the detection results in a readable format. For monorepos, group results by package:
+
+```
+packages/web  (@acme/web)
+  jest (TypeScript) — 42 test files    src/**/*.test.ts
+  playwright (TypeScript) — 18 test files    e2e/**/*.spec.ts
+
+packages/api  (acme-api)
+  golang (Go) — 15 test files    **/*_test.go
+```
+
+For single-package projects, use the flat format without package headers.
+
+Then ask:
 
 > "Does this look right? You can correct any framework names, add missing ones, or remove incorrect ones."
 
@@ -79,7 +130,7 @@ Accept free-text input. If the user presses Enter or provides nothing, record th
 
 ---
 
-## Step 4 — Write `.qualflare/test-state.md`
+## Step 5 — Write `.qualflare/test-state.md`
 
 If `.qualflare/test-state.md` already exists, tell the user:
 
@@ -91,12 +142,13 @@ Create the `.qualflare/` directory if it does not exist:
 mkdir -p $CLAUDE_PROJECT_DIR/.qualflare
 ```
 
-Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` with the following template. Fill in all `<placeholder>` values using the information gathered in Steps 2 and 3:
+Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the template below. Fill in all `<placeholder>` values from Steps 3 and 4:
 
-- `<project-name>`: infer from `package.json` `"name"` field, `go.mod` module path, or the directory name as a fallback.
-- `<languages>`: comma-separated list of detected languages (e.g., `TypeScript, Go`).
-- `<ISO 8601 timestamp>`: current date and time in ISO 8601 format (e.g., `2026-04-19T14:32:00Z`).
-- Framework table rows: one row per confirmed framework slug, with language, file count, and top-level paths from the subagent report.
+- `<project-name>`: for single-package, infer from root manifest; for monorepos, use the directory name or a descriptive label.
+- `<languages>`: comma-separated list of all detected languages across all packages (e.g., `TypeScript, Go`).
+- `<ISO 8601 timestamp>`: current date and time in ISO 8601 format (e.g., `2026-04-20T14:32:00Z`).
+- `## Packages` table: one row per package with path and Qualflare project name. For single-package: one row with path `(root)`.
+- `## Frameworks in use` table: one row per (package, framework) pair including the `Package` column. For single-package: use `(root)` in the Package column.
 - `<suggestions>`: bullet list of suggested frameworks with reasons, or `None` if empty.
 - `<naming-pattern>`: the observed naming convention (e.g., `*.test.ts`, `*_test.go`).
 - `<coverage-threshold>`: the detected coverage threshold, or `none detected`.
@@ -113,12 +165,17 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` with the fol
 - Name: <project-name>
 - Languages: <languages>
 - Generated at: <ISO 8601 timestamp>
-- Plugin version: 0.1.0
+- Plugin version: 0.11.0
+
+## Packages
+| Path | Qualflare Project |
+|------|-------------------|
+<one row per package>
 
 ## Frameworks in use
-| Slug | Language | File count | Top-level paths |
-|------|----------|------------|-----------------|
-<one row per detected framework>
+| Package | Slug | Language | File count | Top-level paths |
+|---------|------|----------|------------|-----------------|
+<one row per (package, framework) pair>
 
 ## Frameworks suggested (not yet installed)
 <bullet list, or "None" if empty>
@@ -135,9 +192,37 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` with the fol
 - Project: <unset>
 ```
 
+**Single-package example:**
+```markdown
+## Packages
+| Path | Qualflare Project |
+|------|-------------------|
+| (root) | my-app |
+
+## Frameworks in use
+| Package | Slug | Language | File count | Top-level paths |
+|---------|------|----------|------------|-----------------|
+| (root) | jest | TypeScript | 42 | src/**/*.test.ts |
+```
+
+**Monorepo example:**
+```markdown
+## Packages
+| Path | Qualflare Project |
+|------|-------------------|
+| packages/web | @acme/web |
+| packages/api | acme-api |
+
+## Frameworks in use
+| Package | Slug | Language | File count | Top-level paths |
+|---------|------|----------|------------|-----------------|
+| packages/web | jest | TypeScript | 42 | packages/web/src/**/*.test.ts |
+| packages/api | golang | Go | 15 | packages/api/**/*_test.go |
+```
+
 ---
 
-## Step 5 — Ask about Stop hook
+## Step 6 — Ask about Stop hook
 
 Ask the user:
 
@@ -158,7 +243,7 @@ Create `.qualflare/` if not already done. Write `$CLAUDE_PROJECT_DIR/.qualflare/
 
 ---
 
-## Step 6 — Update CLAUDE.md
+## Step 7 — Update CLAUDE.md
 
 Read `$CLAUDE_PROJECT_DIR/CLAUDE.md` if it exists.
 
@@ -170,7 +255,7 @@ Determine which case applies:
 
 **Case C — CLAUDE.md exists but does not contain `<!-- BEGIN qualflare-ai -->`:** Append the full marker block (markers + content) at the very end of the file. Do not modify any existing content.
 
-The marker block to write (substitute `<slugs>` with a comma-separated list of confirmed framework slugs from Step 3):
+The marker block to write — substitute `<slugs>` with a comma-separated list of all confirmed framework slugs from Step 4, and include the `<packages-line>` only when applicable (see rule below):
 
 ```
 <!-- BEGIN qualflare-ai -->
@@ -178,16 +263,28 @@ The marker block to write (substitute `<slugs>` with a comma-separated list of c
 
 This project uses [Qualflare](https://qualflare.com) for test management.
 
+### Session startup
+At the start of every session, read `.qualflare/test-state.md` silently before responding. This gives you the current framework list, package layout, naming conventions, and test context — so `/qf-cover`, `/qf-run`, and `/qf-fix` are context-aware from the first message.
+
 ### Quick reference
-- Test state: `.qualflare/test-state.md` — read this at session start
+- Test state: `.qualflare/test-state.md` — auto-read at session start (see above)
 - Upload results: `qf upload <results-file>`
 - Frameworks: <slugs>
+<packages-line>
 - Skill: `qf-cover` — use when asked to write or improve tests
 - Command: `/qf-cover` — generate tests for changed code
 - Command: `/qf-run` — run tests and upload results to Qualflare
+- Command: `/qf-fix` — fix failing tests from the last run
+- Command: `/qf-doctor` — health check: CLI, auth, config, file-count drift
+- Command: `/qf-update` — refresh file counts in test-state.md
 - Command: `/qf-state` — inspect current Qualflare state
+- Command: `/qf-init` — re-run setup (re-detect frameworks, reset state)
 <!-- END qualflare-ai -->
 ```
+
+**`<packages-line>` rule:**
+- If the project has **more than one package**: emit exactly `- Packages: <N> (see .qualflare/test-state.md ## Packages for the list)` where `<N>` is the package count.
+- If the project is **single-package**: omit this line entirely (do not emit a blank line in its place).
 
 **Critical rules:**
 - Never remove or alter content outside the markers.
@@ -196,7 +293,7 @@ This project uses [Qualflare](https://qualflare.com) for test management.
 
 ---
 
-## Step 7 — Outro
+## Step 8 — Outro
 
 Print the following summary to the user:
 
@@ -211,6 +308,7 @@ Created:
 Next steps:
   /qf-cover   — generate tests for changed code
   /qf-run     — run tests and upload to Qualflare
+  /qf-update  — refresh file counts after adding tests
   qf login           — connect to your Qualflare workspace (if not done yet)
 ```
 
@@ -218,9 +316,12 @@ Next steps:
 
 ## Edge cases
 
-- **`.qualflare/test-state.md` already exists:** Overwrite it after informing the user (as described in Step 4). Do not ask for confirmation beyond the note — the user already triggered re-init by running `/qf-init`.
+- **`.qualflare/test-state.md` already exists:** Overwrite it after informing the user (as described in Step 5). Do not ask for confirmation beyond the note — the user already triggered re-init by running `/qf-init`.
 - **CLAUDE.md markers already exist:** Update the content between the markers in-place. Do not append a second block. Do not touch content outside the markers. (Case B above.)
-- **User provides no notes in Step 3:** Record `None` in the `## Notes` section.
+- **User provides no notes in Step 4:** Record `None` in the `## Notes` section.
 - **Subagent detects vitest:** Map it to the `jest` slug. Note in the framework table: `jest (vitest)`.
 - **Subagent detects cargo-test (Rust):** Do not assign a slug. Include a warning note in `.qualflare/test-state.md` under `## Notes` that cargo-test is detected but not yet uploadable to Qualflare.
 - **No test frameworks detected at all:** Do not abort. Write the state file with an empty framework table and add a note: "No test frameworks detected automatically. Edit this file manually to add framework entries."
+- **Workspace declarations found but no package directories on disk:** Treat as single-package. Emit a note in the outro.
+- **Package has no detected frameworks:** Include it in `## Packages` table but omit it from `## Frameworks in use`. Note it in the outro with: "No frameworks detected in `<package-path>` — edit `.qualflare/test-state.md` manually to add entries."
+- **`package.json` lacks a `name` field:** Fall back to the directory path as the Qualflare project name. Do not prompt the user.
