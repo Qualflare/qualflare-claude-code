@@ -215,21 +215,6 @@ test('Test 9: Python test_*.py file is excluded', () => {
   }
 });
 
-test('Test 10: source file AND test file both edited — no nudge', () => {
-  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
-  try {
-    writeConfig(projectDir, { stopHookEnabled: true });
-    writeTranscript(transcriptPath, [
-      { name: 'Edit', filePath: 'src/foo.ts' },
-      { name: 'Edit', filePath: 'src/foo.test.ts' },
-    ]);
-    const { stdout } = runHook({ transcriptPath, projectDir });
-    assert.equal(stdout, '', 'Expected empty stdout when tests were also updated alongside source files');
-  } finally {
-    cleanup();
-  }
-});
-
 test('Test 11: legacy top-level tool_use shape still triggers suggestion (fallback)', () => {
   const { projectDir, transcriptPath, cleanup } = makeWorkspace();
   try {
@@ -380,6 +365,22 @@ test('Test 21: config edit + substantive source edit still triggers with count 1
   }
 });
 
+test('Test 22: source + test + config edits — no nudge (testEdited preserved)', () => {
+  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
+  try {
+    writeConfig(projectDir, { stopHookEnabled: true });
+    writeTranscript(transcriptPath, [
+      { name: 'Edit', filePath: 'src/auth.ts', oldString: '', newString: 'export function login() {\n  return true;\n}\n' },
+      { name: 'Edit', filePath: 'src/auth.test.ts', oldString: '', newString: 'test("login", () => {});\n' },
+      { name: 'Edit', filePath: 'jest.config.ts' },
+    ]);
+    const { stdout } = runHook({ transcriptPath, projectDir });
+    assert.equal(stdout, '', 'Expected empty stdout: testEdited should suppress nudge even with config file present');
+  } finally {
+    cleanup();
+  }
+});
+
 test('Test 23: tsconfig.json edit is excluded', () => {
   const { projectDir, transcriptPath, cleanup } = makeWorkspace();
   try {
@@ -402,22 +403,6 @@ test('Test 24: single-line Edit with trailing newline is trivial (trimEnd fix)',
     ]);
     const { stdout } = runHook({ transcriptPath, projectDir });
     assert.equal(stdout, '', 'Expected empty stdout: single-line edit with trailing newline should be trivial');
-  } finally {
-    cleanup();
-  }
-});
-
-test('Test 22: source + test + config edits — no nudge (testEdited preserved)', () => {
-  const { projectDir, transcriptPath, cleanup } = makeWorkspace();
-  try {
-    writeConfig(projectDir, { stopHookEnabled: true });
-    writeTranscript(transcriptPath, [
-      { name: 'Edit', filePath: 'src/auth.ts', oldString: '', newString: 'export function login() {\n  return true;\n}\n' },
-      { name: 'Edit', filePath: 'src/auth.test.ts', oldString: '', newString: 'test("login", () => {});\n' },
-      { name: 'Edit', filePath: 'jest.config.ts' },
-    ]);
-    const { stdout } = runHook({ transcriptPath, projectDir });
-    assert.equal(stdout, '', 'Expected empty stdout: testEdited should suppress nudge even with config file present');
   } finally {
     cleanup();
   }

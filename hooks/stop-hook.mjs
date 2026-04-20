@@ -55,7 +55,9 @@ try {
     if (block.name !== 'Edit') return false; // Write / MultiEdit / NotebookEdit never trivial
     const oldStr = block.input?.old_string ?? '';
     const newStr = block.input?.new_string ?? '';
-    return newStr.trimEnd().split('\n').length <= 1 && (newStr.length - oldStr.length) <= 40;
+    return newStr.trimEnd().split('\n').length <= 1
+        && oldStr.trimEnd().split('\n').length <= 1
+        && Math.abs(newStr.length - oldStr.length) <= 40;
   }
 
   // 4. Read transcript and collect edits

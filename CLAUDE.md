@@ -67,7 +67,7 @@ This script exits 1 if any slug in the Go source is not reflected in the markdow
 node --test hooks/stop-hook.test.mjs
 ```
 
-All 22 tests must pass.
+All 23 tests must pass.
 
 ## How to test the plugin locally
 

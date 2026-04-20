@@ -5,7 +5,7 @@ description: >
   counts, hook setting, and last upload info. Use when the user runs
   /qf-state, asks "what does Qualflare know about this project?", or
   asks about their current Qualflare setup.
-allowed-tools: Read Glob Bash(qf:*)
+allowed-tools: Read Glob Bash(qf:*) Bash(printenv:*)
 ---
 
 ## Step 1 — Read state files
@@ -56,7 +56,7 @@ Conventions:
 
 Stop hook: ✅ enabled  (or ❌ disabled)
 
-Qualflare backend: not connected (run `qf login`)
+Qualflare backend: QF_API_KEY not set ⚠️
 ```
 
 **Multi-package format** (package list has more than one entry):
@@ -88,7 +88,7 @@ Conventions:
 
 Stop hook: ✅ enabled  (or ❌ disabled)
 
-Qualflare backend: not connected (run `qf login`)
+Qualflare backend: QF_API_KEY not set ⚠️
 ```
 
 Field guidance:
@@ -103,20 +103,17 @@ Field guidance:
 
 ---
 
-## Step 3 — Run `qf status`
+## Step 3 — Check CLI and API key
 
-Attempt to run:
+Run `qf version` to verify the CLI is installed:
+- **Exit 0:** CLI is available. Note the version string.
+- **Exit 127 or not found:** add: "qf CLI not found. Install it from https://qualflare.com/docs/cli"
 
-```bash
-qf status
-```
+If CLI is available, run `printenv QF_API_KEY`:
+- **Non-empty output:** show `Qualflare backend: QF_API_KEY configured ✅`
+- **Empty output:** show `Qualflare backend: QF_API_KEY not set ⚠️ — set it with: export QF_API_KEY=<your-key>  (https://qualflare.com/settings/api-keys)`
 
-- If the command succeeds (exit code 0), append its output below the state summary under a "Backend Status" heading.
-- If the command is not found (exit code 127 or similar), add:
-  > "qf CLI not found. Install it from https://qualflare.com/docs/cli and run `qf login`."
-- If the command exits non-zero with output containing `auth`, `token`, `unauthorized`, `401`, or `login`, add:
-  > "Not connected to Qualflare backend. Run `qf login` to connect."
-- For any other non-zero exit, show the error output as-is.
+Note: the Qualflare CLI authenticates via the `QF_API_KEY` environment variable or the `--api-key` flag. There is no `qf login` command.
 
 ---
 

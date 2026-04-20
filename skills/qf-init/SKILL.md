@@ -5,7 +5,7 @@ description: >
   frameworks, writes .qualflare/test-state.md, and configures the optional
   Stop hook. Use when the user runs /qf-init or asks to "set up
   Qualflare" or "initialize Qualflare".
-allowed-tools: Read Write Edit Glob Bash(git:*) Bash(mkdir:*) Bash(node:*)
+allowed-tools: Read Write Edit Glob Bash(git:*) Bash(mkdir:*) Bash(node:*) Bash(printenv:*)
 ---
 
 You are executing the `qf-init` skill. Follow every step below in order. Do not skip steps or reorder them.
@@ -165,7 +165,7 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 - Name: <project-name>
 - Languages: <languages>
 - Generated at: <ISO 8601 timestamp>
-- Plugin version: 0.11.0
+- Plugin version: 0.14.0
 
 ## Packages
 | Path | Qualflare Project |
@@ -188,7 +188,7 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 <user-notes>
 
 ## Qualflare backend
-- Workspace: <unset — run `qf login` to connect>
+- Workspace: <unset — set QF_API_KEY to connect>
 - Project: <unset>
 ```
 
@@ -295,7 +295,9 @@ At the start of every session, read `.qualflare/test-state.md` silently before r
 
 ## Step 8 — Outro
 
-Print the following summary to the user:
+Run `printenv QF_API_KEY` to check whether the API key is already configured.
+
+Print the following summary. Include the `⚠️ API key` line only if `QF_API_KEY` is empty or unset:
 
 ```
 ✅ Qualflare initialized!
@@ -309,8 +311,11 @@ Next steps:
   /qf-cover   — generate tests for changed code
   /qf-run     — run tests and upload to Qualflare
   /qf-update  — refresh file counts after adding tests
-  qf login           — connect to your Qualflare workspace (if not done yet)
+  ⚠️  QF_API_KEY not set — run: export QF_API_KEY=<key>
+      Get your key at https://qualflare.com/settings/api-keys
 ```
+
+Omit the `⚠️  QF_API_KEY` lines entirely if `QF_API_KEY` is already set.
 
 ---
 

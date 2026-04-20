@@ -4,7 +4,7 @@ description: >
   Run the project's test suite and upload results to Qualflare. Use when the
   user runs /qf-run, asks to "run tests and report", asks to "run tests
   and upload", or explicitly invokes this skill after writing tests.
-allowed-tools: Read Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(cd:*) Bash(cp:*)
+allowed-tools: Read Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(cd:*) Bash(cp:*) Bash(git:*) Bash(printenv:*)
 ---
 
 ## Step 1 — Read test state and build work queue
@@ -102,18 +102,49 @@ If the command exits with code 127 (command not found) or is otherwise unavailab
 
 Stop here — do not attempt uploads without the CLI.
 
-For each result file produced in Step 2, run `qf upload` with `--format` and `--project`:
+Before uploading, detect git metadata and the runtime environment:
 
 ```bash
-qf upload <results-file> --format <slug> --project <qualflareProject>
+git rev-parse --abbrev-ref HEAD   # branch name
+git rev-parse --short HEAD        # short commit hash
 ```
+
+If either git command fails (not a git repo, no commits), omit the corresponding flag.
+
+**Environment detection:** Check environment variables to determine where the tests are running:
+
+```bash
+printenv GITHUB_ACTIONS   # → "true" if GitHub Actions
+printenv CIRCLECI         # → "true" if CircleCI
+printenv TRAVIS           # → "true" if Travis CI
+printenv CI               # → "true" for most CI systems
+```
+
+- If `GITHUB_ACTIONS=true`: environment = `"github-actions"`
+- Else if `CIRCLECI=true`: environment = `"circleci"`
+- Else if `TRAVIS=true`: environment = `"travis"`
+- Else if `CI=true`: environment = `"ci"`
+- Else: environment = `"local"`
+
+For each result file produced in Step 2, run `qf upload` with `--format`, `--project`, `--branch`, `--commit`, and `--environment`:
+
+```bash
+qf upload <results-file> \
+  --format <slug> \
+  --project <qualflareProject> \
+  --branch "<branch>" \
+  --commit "<commit>" \
+  --environment "<environment>"
+```
+
+Omit `--branch` or `--commit` if the corresponding git command failed. Always include `--environment`.
 
 The `<qualflareProject>` is the value from the `## Packages` table row whose `Path` matches the current package. If no match is found, fall back to the project name from the `## Project` section.
 
-**If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, or `login`:**
+**If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, `api-key`, or `key`:**
 
 Tell the user:
-> "Looks like `qf` isn't authenticated. Run `qf login` to connect your workspace, then re-run `/qf-run`."
+> "Upload failed — the QF_API_KEY is missing or invalid. Set it with: `export QF_API_KEY=<your-key>` (get your key from https://qualflare.com/settings/api-keys), then re-run `/qf-run`."
 
 Stop here. Do not retry any remaining uploads.
 

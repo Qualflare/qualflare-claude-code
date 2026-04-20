@@ -4,7 +4,7 @@ description: >
   Analyze failing tests from the last /qf-run and fix the source code to make
   them pass. Use when the user runs /qf-fix, asks to "fix failing tests", or
   asks to "fix test failures". Requires result files from a prior /qf-run.
-allowed-tools: Read Edit Glob Bash(npx:*) Bash(go test:*) Bash(pytest:*) Bash(cd:*) Bash(node:*) Bash(mkdir:*) Bash(cp:*) Bash(grep:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
+allowed-tools: Read Edit Glob Bash(qf:*) Bash(npx:*) Bash(go test:*) Bash(pytest:*) Bash(cd:*) Bash(node:*) Bash(mkdir:*) Bash(cp:*) Bash(grep:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
 ---
 
 ## Step 1 — Read state and locate result files
@@ -52,6 +52,17 @@ Remove from the queue any items whose result file does not exist. If the entire 
 > "No result files found. Run `/qf-run` first to generate test results, then re-run `/qf-fix`."
 
 Stop here.
+
+**Validate result files (pre-flight):** For each item remaining in the queue, run:
+
+```bash
+qf validate --format <slug> <result-file>
+```
+
+- **Exit 0:** file is valid — proceed normally.
+- **Non-zero:** warn the user: "Result file for `<slug>` (<package>) failed validation — it may be corrupt or truncated. Re-run `/qf-run` to regenerate, then try `/qf-fix` again." Remove the item from the queue.
+
+If the queue is empty after validation, stop.
 
 ---
 

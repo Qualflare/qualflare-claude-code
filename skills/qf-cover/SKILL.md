@@ -146,6 +146,13 @@ The file extension must be one of: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`,
 **Condition 3 — Path does not contain excluded directory components:**
 The path must NOT contain any of: `node_modules/`, `vendor/`, `dist/`, `build/`, `.git/`, `.next/`, `__pycache__/`
 
+**Condition 4 — File is not a config or type-only file:**
+Exclude the file if its basename (filename without directory) matches ANY of:
+- Config patterns: `*.config.{js,jsx,ts,tsx,mjs,cjs,mts,cts,json}` (e.g., `vite.config.ts`, `jest.config.js`, `tsconfig.json`, `tailwind.config.cjs`)
+- RC-file patterns: `.*rc.{js,ts,cjs,mjs,json,yaml,yml}` (e.g., `.eslintrc.js`, `.prettierrc.json`)
+- Bare RC files (exact basenames): `.eslintrc`, `.prettierrc`, `.babelrc`, `.stylelintrc`
+- Type-only patterns: `*.d.{ts,mts,cts}` (e.g., `globals.d.ts`), `types.{ts,tsx}` (exact basename), `*.types.{ts,tsx}` (e.g., `api.types.ts`)
+
 **Package attribution:** For each file that passes Conditions 1–3, determine which package it belongs to by finding the longest-prefix match from the package list (from Step 1). For example, if the package list contains `packages/web` and `packages/api`, then `packages/web/src/user.ts` belongs to `packages/web`. Files with no matching package prefix fall under `(root)` only if `(root)` is in the package list; otherwise they are reported as orphaned (warn the user but do not process them further).
 
 **Filtering by `$ARGUMENTS`** (after stripping `--all` if present — tie-breaker: any value containing `/` is a package path; anything else is a file glob):
@@ -368,8 +375,7 @@ After all approved test files have been written, tell the user:
 - **`--all` with no path** (e.g., `/qf-cover --all`): Collect all source files in the project root. Apply the area-picker flow if > 8 files. Useful for bootstrapping coverage on an existing codebase.
 - **`--all` with a path** (e.g., `/qf-cover --all src/utils/`): Scope the glob to that path. If ≤ 8 files are found, skip the area picker and go straight to Step 4.
 - **Function already covered but logic changed**: The heuristic (function name appears in test file) may produce false positives when a function was renamed. When in doubt, include the function in proposals — a small false positive is better than a missed gap.
-- **Source file is a configuration file** (e.g., `vite.config.ts`, `jest.config.ts`, `next.config.js`): Exclude it from the list — configuration files do not need unit tests. Add this exclusion in Step 3 by checking if the filename contains `config` or `setup` as a whole word segment.
-- **Source file is a type definition only** (e.g., `types.ts`, `*.d.ts`): Exclude it — type-only files have no runtime behavior to test.
+- **Source file is a configuration or type-only file**: Already excluded by Condition 4 in Step 3. No additional handling needed.
 - **Multiple frameworks detected for the same language**: Prefer the framework whose config file is present at the project root. If still ambiguous, ask the user which framework to use before writing any test files.
 - **No naming convention in test-state.md**: Search the project for two or three existing test files using the Read tool on likely paths, infer the convention from those files, and use it. If no existing test files are found, default to `<base>.test.<ext>` co-located with the source.
 - **User says 'skip' for all files**: Acknowledge the skips and stop without writing anything. Do not suggest further actions.

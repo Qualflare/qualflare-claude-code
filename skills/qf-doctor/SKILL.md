@@ -6,7 +6,7 @@ description: >
   drift, and framework tooling availability. Use when the user runs /qf-doctor,
   asks "is Qualflare set up correctly?", or encounters unexpected behavior from
   other qf commands.
-allowed-tools: Read Glob Bash(qf:*) Bash(go:*) Bash(npx:*) Bash(python:*) Bash(php:*) Bash(bundle:*)
+allowed-tools: Read Glob Bash(qf:*) Bash(go:*) Bash(npx:*) Bash(python:*) Bash(php:*) Bash(bundle:*) Bash(printenv:*) Bash(mvn:*) Bash(gradle:*)
 ---
 
 Run all checks in order. Collect results as `{ label, status, detail, fix? }` where `status` is one of `ok`, `warn`, or `error`. Print the full report at the end (Step 7) — do not print intermediate results as you go.
@@ -34,12 +34,13 @@ Record whether the CLI is available (`cliAvailable = exit code 0`). Use this fla
 
 Run:
 ```bash
-qf status
+printenv QF_API_KEY
 ```
 
-- **Exit 0:** status `ok` — label "Auth". If stdout contains a workspace or org name, include it in the detail (e.g., `authenticated · workspace: acme-corp`). Otherwise detail `authenticated`.
-- **Non-zero AND output contains any of `auth`, `token`, `unauthorized`, `401`, `login`:** status `error` — label "Auth", detail "not authenticated", fix `qf login`.
-- **Any other non-zero:** status `warn` — label "Auth", detail first line of stderr output.
+- **Output is non-empty (exit 0):** status `ok` — label "Auth", detail "QF_API_KEY is set".
+- **Output is empty (exit 1 or empty string):** status `warn` — label "Auth", detail "QF_API_KEY is not set — uploads will fail unless `--api-key` is passed per invocation", fix `export QF_API_KEY=<your-key>  (get your key from https://qualflare.com/settings/api-keys)`.
+
+Note: the Qualflare CLI authenticates via the `QF_API_KEY` environment variable or the `--api-key` flag per invocation. There is no `qf login` command.
 
 ---
 

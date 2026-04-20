@@ -39,11 +39,23 @@ fs.writeFileSync(p, JSON.stringify(obj, null, 2) + '\n');
 " "$NEW_VERSION"
 
 echo "==> Updating Plugin version in skills/qf-init/SKILL.md..."
-sed -i '' "s/- Plugin version: [0-9]*\.[0-9]*\.[0-9]*/- Plugin version: $NEW_VERSION/" \
-  skills/qf-init/SKILL.md
+node -e "
+const fs = require('fs');
+const p = 'skills/qf-init/SKILL.md';
+fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(/- Plugin version: [0-9]+\.[0-9]+\.[0-9]+/, '- Plugin version: $NEW_VERSION'));
+"
+
+echo "==> Bumping version in .claude-plugin/marketplace.json to $NEW_VERSION..."
+node -e "
+const fs = require('fs');
+const p = '.claude-plugin/marketplace.json';
+const obj = JSON.parse(fs.readFileSync(p, 'utf8'));
+obj.plugins[0].version = process.argv[1];
+fs.writeFileSync(p, JSON.stringify(obj, null, 2) + '\n');
+" "$NEW_VERSION"
 
 echo "==> Staging changed files..."
-git add .claude-plugin/plugin.json skills/qf-init/SKILL.md
+git add .claude-plugin/plugin.json .claude-plugin/marketplace.json skills/qf-init/SKILL.md
 
 echo "==> Committing release..."
 git commit -m "chore: release v$NEW_VERSION"
