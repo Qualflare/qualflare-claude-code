@@ -1,55 +1,125 @@
-# qualflare-ai — Claude Code Plugin
+# qualflare
 
-A [Claude Code](https://claude.ai/code) plugin that connects your coding sessions to [Qualflare](https://qualflare.com) for test management and reporting.
+> AI-powered test coverage, inside Claude Code.
 
-## Install
+When Claude writes code in your project, it should also write the tests. Qualflare makes that the default: generate coverage for what you changed, run your test suite, fix what breaks, and report it all to your Qualflare dashboard — without switching context.
 
-```bash
-# In Claude Code
-/plugin marketplace add Astrais/qualflare-ai
+One-time setup, then just code.
+
+## Quick start
+
+Add the plugin to Claude Code:
+
+```
+/plugin marketplace add qualflare/qualflare-ai
+```
+
+Install it in your current project:
+
+```
 /plugin install qualflare@qualflare
 ```
 
-## Set up your project
+Run setup once in your project root:
 
-Run once in any project:
 ```
 /qf-init
 ```
 
-This detects your tech stack, writes `.qualflare/test-state.md`, and optionally enables the Stop hook.
+That's it. `/qf-init` detects your tech stack, reads your package layout, and writes a state file so every future session starts with full context about your tests.
 
-## Commands
+## What you can do
 
-| Command | What it does |
-|---------|-------------|
-| `/qf-init` | First-time setup: detect stack, write state file |
-| `/qf-cover` | Generate tests for code you just changed |
-| `/qf-run` | Run tests and upload results to Qualflare |
-| `/qf-fix` | Fix failing tests from the last run |
-| `/qf-doctor` | Health check: CLI, API key, config, drift |
-| `/qf-update` | Refresh file counts without re-running setup |
-| `/qf-state` | Show current Qualflare state for this project |
-| `/qf-hook on\|off` | Toggle the post-session test suggestion |
+Every command runs from the Claude Code chat — no terminal, no config files.
 
-## Stop hook
+| Command | When to use it |
+|---------|----------------|
+| `/qf-init` | Once, to set up a new project — detects frameworks, counts test files, and optionally enables the coverage nudge |
+| `/qf-cover [path]` | After writing code — generates tests for the source files you just changed |
+| `/qf-run [slug]` | When you're ready to verify — runs your test suite and uploads results to Qualflare |
+| `/qf-fix [path]` | When tests are red — analyzes the last run and patches your code until they pass |
+| `/qf-doctor` | When something feels wrong — health check covering CLI, API key, config, and file-count drift |
+| `/qf-update` | When you've added test files — refreshes counts without re-running full setup |
+| `/qf-state` | When you want to see what Qualflare knows — shows frameworks, file counts, and hook status |
+| `/qf-hook on\|off` | Any time — toggle the end-of-session coverage nudge on or off |
 
-When enabled during `/qf-init`, the Stop hook fires at the end of each Claude Code session and prints a one-line nudge if you edited source files without updating tests:
+## The coverage nudge
+
+When enabled during `/qf-init`, a quiet nudge appears at the end of any session where you edited source files without touching the tests:
 
 ```
-🔍 Qualflare: 2 source file(s) changed without test updates. Run /qf-cover to add coverage.
+🔍 Qualflare: 3 source file(s) changed without test updates. Run /qf-cover to add coverage.
 ```
 
-Toggle it any time with `/qf-hook on` or `/qf-hook off`.
+It only fires when something worth covering was changed — trivial edits, config files, and type definitions don't count. Toggle it any time with `/qf-hook off`.
+
+## Supported frameworks
+
+If your tests run with any of these, Qualflare has you covered.
+
+**Unit** — `jest` · `mocha` · `golang` · `python` (pytest) · `rspec` · `phpunit` · `junit`
+
+**BDD** — `cucumber` · `karate`
+
+**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe`
+
+**API** — `newman` · `k6`
+
+**Security** — `zap` · `trivy` · `snyk` · `sonarqube`
+
+Vitest results upload via the `jest` slug. Multi-framework monorepos work too — `/qf-init` detects each workspace and tracks them separately.
 
 ## Requirements
 
-- Claude Code
-- [Qualflare CLI (`qf`)](https://qualflare.com/docs/cli) installed in PATH
-- `QF_API_KEY` environment variable set (get your key from https://qualflare.com/settings/api-keys)
+Before running `/qf-init`, make sure you have:
 
-## Update
+- [Claude Code](https://claude.ai/code) — the CLI or desktop app
+- [Qualflare CLI (`qf`)](https://qualflare.com/docs/cli) — installed and on your PATH
+- `QF_API_KEY` — your API key set as an environment variable ([get one here](https://qualflare.com/settings/api-keys))
+
+The `qf` CLI is how this plugin uploads results to Qualflare. `/qf-run` will not continue until it is installed.
+
+## When something's off
+
+Run `/qf-doctor` first. It checks the three things that break most often:
+
+- Is `qf` installed and available on your PATH?
+- Is `QF_API_KEY` set?
+- Is your `test-state.md` still current, or has the project drifted since setup?
+
+Most issues are a missing CLI or a missing environment variable. Fix what the doctor flags and re-run.
+
+## How it stores state
+
+`/qf-init` creates a `.qualflare/` directory in your project root:
+
+```
+.qualflare/
+├── test-state.md    # framework + file-count context — commit this
+├── config.json      # hook preference — commit this
+└── results/         # last-run output from qf upload — gitignore this
+```
+
+Add `.qualflare/results/` to your `.gitignore`. The other two files are meant to be committed — they give every session the context it needs without running setup again.
+
+## Updating
+
+Pull the latest version at any time:
 
 ```
 /plugin update qualflare
 ```
+
+## Contributing
+
+Bug reports and pull requests are welcome at [github.com/qualflare/qualflare-ai](https://github.com/qualflare/qualflare-ai/issues).
+
+For development notes — how to test the hook, how to add a new framework, how to cut a release — see [`CLAUDE.md`](./CLAUDE.md).
+
+## License
+
+Released under the MIT License. A `LICENSE` file will be added to the repository before the first tagged release.
+
+---
+
+[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI install](https://qualflare.com/docs/cli) · [Issues](https://github.com/qualflare/qualflare-ai/issues) · [Changelog](https://github.com/qualflare/qualflare-ai/releases)
