@@ -74,10 +74,28 @@ Vitest results upload via the `jest` slug. Multi-framework monorepos work too �
 Before running `/qf-init`, make sure you have:
 
 - [Claude Code](https://claude.ai/code) — the CLI or desktop app
-- [Qualflare CLI (`qf`)](https://qualflare.com/docs/cli) — installed and on your PATH
+- **Qualflare CLI (`qf`)** — installed and on your PATH (see below)
 - `QF_API_KEY` — your API key set as an environment variable ([get one here](https://qualflare.com/settings/api-keys))
 
-The `qf` CLI is how this plugin uploads results to Qualflare. `/qf-run` will not continue until it is installed.
+### Installing the Qualflare CLI
+
+**macOS / Linux — Homebrew:**
+
+```bash
+brew install qualflare/tap/qf
+```
+
+**All platforms — binary download:**
+
+Download the pre-built binary for your OS from [github.com/qualflare/qualflare-cli/releases](https://github.com/qualflare/qualflare-cli/releases), extract it, and place `qf` somewhere on your PATH.
+
+**Docker:**
+
+```bash
+docker pull ghcr.io/qualflare/qf:latest
+```
+
+Verify the install with `qf version`. `/qf-run` will not continue until `qf` is on your PATH.
 
 ## When something's off
 
