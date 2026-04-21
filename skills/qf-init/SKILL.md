@@ -165,7 +165,7 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 - Name: <project-name>
 - Languages: <languages>
 - Generated at: <ISO 8601 timestamp>
-- Plugin version: 0.14.0
+- Plugin version: 0.15.0
 
 ## Packages
 | Path | Qualflare Project |

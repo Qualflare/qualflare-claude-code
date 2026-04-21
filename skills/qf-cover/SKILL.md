@@ -361,11 +361,21 @@ Choose the framework based on the slugs extracted in Step 1 and the source file'
 
 ---
 
-## Step 7 — Suggest next step
+## Step 7 — Refresh file counts and suggest next step
 
-After all approved test files have been written, tell the user:
+After writing test files, silently update the file counts in `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` for each (package, slug) pair touched in Step 6.
 
-> "Tests written. Run `/qf-run` to execute them and upload results to Qualflare."
+For each touched (package, slug):
+
+1. Read the glob patterns for the slug from `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Locate the "Test-File Globs Per Slug" table and extract the patterns for this slug.
+2. Run Glob using those patterns, scoped to the `Top-level paths` from the matching row in `## Frameworks in use`. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
+3. Count unique matches. Use the Edit tool to update the `File count` value in that row — use the **exact raw line bytes from the file** as `old_string`, replacing only the count number.
+
+After updating all touched rows, also update the `Generated at:` line in the `## Project` section to the current ISO 8601 timestamp.
+
+Do this silently — no output about the count changes. Then tell the user:
+
+> "Tests written. Run `/qf-run` to execute them, then `/qf-fix` if any fail."
 
 ---
 

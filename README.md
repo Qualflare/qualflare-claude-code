@@ -26,6 +26,9 @@ This detects your tech stack, writes `.qualflare/test-state.md`, and optionally 
 | `/qf-init` | First-time setup: detect stack, write state file |
 | `/qf-cover` | Generate tests for code you just changed |
 | `/qf-run` | Run tests and upload results to Qualflare |
+| `/qf-fix` | Fix failing tests from the last run |
+| `/qf-doctor` | Health check: CLI, API key, config, drift |
+| `/qf-update` | Refresh file counts without re-running setup |
 | `/qf-state` | Show current Qualflare state for this project |
 | `/qf-hook on\|off` | Toggle the post-session test suggestion |
 
@@ -43,7 +46,7 @@ Toggle it any time with `/qf-hook on` or `/qf-hook off`.
 
 - Claude Code
 - [Qualflare CLI (`qf`)](https://qualflare.com/docs/cli) installed in PATH
-- Run `qf login` to authenticate before uploading results
+- `QF_API_KEY` environment variable set (get your key from https://qualflare.com/settings/api-keys)
 
 ## Update
 
