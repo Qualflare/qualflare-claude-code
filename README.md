@@ -8,6 +8,8 @@ One-time setup, then just code.
 
 ## Quick start
 
+Before you begin, install the [Qualflare CLI](#installing-the-qualflare-cli) and set your `QF_API_KEY` environment variable — then come back here.
+
 Add the plugin to Claude Code:
 
 ```
@@ -130,7 +132,7 @@ Pull the latest version at any time:
 
 ## Contributing
 
-Bug reports and pull requests are welcome at [github.com/qualflare/qualflare-ai](https://github.com/qualflare/qualflare-ai/issues).
+Bug reports and pull requests are welcome — open an issue at [github.com/qualflare/qualflare-ai/issues](https://github.com/qualflare/qualflare-ai/issues).
 
 For development notes — how to test the hook, how to add a new framework, how to cut a release — see [`CLAUDE.md`](./CLAUDE.md).
 
@@ -140,4 +142,4 @@ Released under the MIT License. A `LICENSE` file will be added to the repository
 
 ---
 
-[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI install](https://qualflare.com/docs/cli) · [Issues](https://github.com/qualflare/qualflare-ai/issues) · [Changelog](https://github.com/qualflare/qualflare-ai/releases)
+[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI releases](https://github.com/qualflare/qualflare-cli/releases) · [Issues](https://github.com/qualflare/qualflare-ai/issues) · [Changelog](https://github.com/qualflare/qualflare-ai/releases)
