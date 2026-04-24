@@ -13,7 +13,7 @@ Before you begin, install the [Qualflare CLI](#installing-the-qualflare-cli) and
 Add the plugin to Claude Code:
 
 ```
-/plugin marketplace add qualflare/qualflare-ai
+/plugin marketplace add Qualflare/qualflare-ai
 ```
 
 Install it in your current project:
@@ -84,17 +84,17 @@ Before running `/qf-init`, make sure you have:
 **macOS / Linux — Homebrew:**
 
 ```bash
-brew install qualflare/tap/qf
+brew install Qualflare/tap/qf
 ```
 
 **All platforms — binary download:**
 
-Download the pre-built binary for your OS from [github.com/qualflare/qualflare-cli/releases](https://github.com/qualflare/qualflare-cli/releases), extract it, and place `qf` somewhere on your PATH.
+Download the pre-built binary for your OS from [github.com/Qualflare/qualflare-cli/releases](https://github.com/Qualflare/qualflare-cli/releases), extract it, and place `qf` somewhere on your PATH.
 
 **Docker:**
 
 ```bash
-docker pull ghcr.io/qualflare/qf:latest
+docker pull ghcr.io/Qualflare/qf:latest
 ```
 
 Verify the install with `qf version`. `/qf-run` will not continue until `qf` is on your PATH.
@@ -132,14 +132,14 @@ Pull the latest version at any time:
 
 ## Contributing
 
-Bug reports and pull requests are welcome — open an issue at [github.com/qualflare/qualflare-ai/issues](https://github.com/qualflare/qualflare-ai/issues).
+Bug reports and pull requests are welcome — open an issue at [github.com/Qualflare/qualflare-ai/issues](https://github.com/Qualflare/qualflare-ai/issues).
 
 For development notes — how to test the hook, how to add a new framework, how to cut a release — see [`CLAUDE.md`](./CLAUDE.md).
 
 ## License
 
-Released under the MIT License. A `LICENSE` file will be added to the repository before the first tagged release.
+Licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
-[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI releases](https://github.com/qualflare/qualflare-cli/releases) · [Issues](https://github.com/qualflare/qualflare-ai/issues) · [Changelog](https://github.com/qualflare/qualflare-ai/releases)
+[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI releases](https://github.com/Qualflare/qualflare-cli/releases) · [Issues](https://github.com/Qualflare/qualflare-ai/issues) · [Changelog](https://github.com/Qualflare/qualflare-ai/releases)
