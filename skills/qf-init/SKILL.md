@@ -5,7 +5,7 @@ description: >
   frameworks, writes .qualflare/test-state.md, and configures the optional
   Stop hook. Use when the user runs /qf-init or asks to "set up
   Qualflare" or "initialize Qualflare".
-allowed-tools: Read Write Edit Glob Bash(git:*) Bash(mkdir:*) Bash(node:*) Bash(printenv:*)
+allowed-tools: Read Write Edit Glob Bash(git:*) Bash(mkdir:*) Bash(node:*) Bash(qf:*)
 ---
 
 You are executing the `qf-init` skill. Follow every step below in order. Do not skip steps or reorder them.
@@ -147,12 +147,23 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 - `<project-name>`: for single-package, infer from root manifest; for monorepos, use the directory name or a descriptive label.
 - `<languages>`: comma-separated list of all detected languages across all packages (e.g., `TypeScript, Go`).
 - `<ISO 8601 timestamp>`: current date and time in ISO 8601 format (e.g., `2026-04-20T14:32:00Z`).
-- `## Packages` table: one row per package with path and Qualflare project name. For single-package: one row with path `(root)`.
+- `## Packages` table: one row per package with `Path` and a derived `Identifier` (see derivation rule below). For single-package: one row with path `(root)`.
 - `## Frameworks in use` table: one row per (package, framework) pair including the `Package` column. For single-package: use `(root)` in the Package column.
 - `<suggestions>`: bullet list of suggested frameworks with reasons, or `None` if empty.
 - `<naming-pattern>`: the observed naming convention (e.g., `*.test.ts`, `*_test.go`).
 - `<coverage-threshold>`: the detected coverage threshold, or `none detected`.
 - `<user-notes>`: the user's free-text notes from Step 3, or `None`.
+
+**Identifier derivation:** For each package, derive an `Identifier` from its name by:
+1. Lowercasing the name.
+2. Replacing every character outside `[a-z0-9_-]` with `-` (this covers `@`, `/`, `.`, whitespace, etc.).
+3. Collapsing runs of `-` into a single `-`.
+4. Trimming leading and trailing `-`.
+5. If the result is empty or starts with anything other than `[a-z0-9]` (e.g., would otherwise begin with `_`), prepend the literal string `pkg-`.
+6. If the result matches a CLI-reserved name — `login`, `logout`, `projects`, `version`, `list-formats`, `formats`, `lf`, `help`, `completion`, `__complete` — prepend the literal string `pkg-`. (E.g., a package called `help` becomes `pkg-help`.)
+7. Truncating to 63 characters.
+
+The identifier must match `^[a-z0-9][a-z0-9_-]{0,62}$` and is used as the local CLI alias passed to `qf <identifier> collect …`. Examples: `@acme/web` → `acme-web`, `Acme.Api` → `acme-api`, `my pkg` → `my-pkg`, `help` → `pkg-help`.
 
 ```markdown
 <!-- qualflare-test-state v:1 -->
@@ -165,11 +176,11 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 - Name: <project-name>
 - Languages: <languages>
 - Generated at: <ISO 8601 timestamp>
-- Plugin version: 0.15.0
+- Plugin version: 0.16.0
 
 ## Packages
-| Path | Qualflare Project |
-|------|-------------------|
+| Path | Identifier |
+|------|------------|
 <one row per package>
 
 ## Frameworks in use
@@ -186,17 +197,13 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 
 ## Notes
 <user-notes>
-
-## Qualflare backend
-- Workspace: <unset — set QF_API_KEY to connect>
-- Project: <unset>
 ```
 
 **Single-package example:**
 ```markdown
 ## Packages
-| Path | Qualflare Project |
-|------|-------------------|
+| Path | Identifier |
+|------|------------|
 | (root) | my-app |
 
 ## Frameworks in use
@@ -208,9 +215,9 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 **Monorepo example:**
 ```markdown
 ## Packages
-| Path | Qualflare Project |
-|------|-------------------|
-| packages/web | @acme/web |
+| Path | Identifier |
+|------|------------|
+| packages/web | acme-web |
 | packages/api | acme-api |
 
 ## Frameworks in use
@@ -268,7 +275,7 @@ At the start of every session, read `.qualflare/test-state.md` silently before r
 
 ### Quick reference
 - Test state: `.qualflare/test-state.md` — auto-read at session start (see above)
-- Upload results: `qf upload <results-file>`
+- Upload results: `qf <identifier> collect <results-file>` (identifier from `## Packages`)
 - Frameworks: <slugs>
 <packages-line>
 - Skill: `qf-cover` — use when asked to write or improve tests
@@ -295,9 +302,14 @@ At the start of every session, read `.qualflare/test-state.md` silently before r
 
 ## Step 8 — Outro
 
-Run `printenv QF_API_KEY` to check whether the API key is already configured.
+Run `qf projects` to list the locally configured CLI identifiers. Two cases to handle:
 
-Print the following summary. Include the `⚠️ API key` line only if `QF_API_KEY` is empty or unset:
+- **Output is the literal hint** `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- **Output is one identifier per line** → parse into a set.
+
+Cross-reference the identifiers in the `## Packages` table against this set. Build a list of `Identifier` values that are missing locally.
+
+Print the following summary. Include the `⚠️  Authenticate` block only when one or more identifiers from `## Packages` are missing from `qf projects`:
 
 ```
 ✅ Qualflare initialized!
@@ -311,11 +323,19 @@ Next steps:
   /qf-cover   — generate tests for changed code
   /qf-run     — run tests and upload to Qualflare
   /qf-update  — refresh file counts after adding tests
-  ⚠️  QF_API_KEY not set — run: export QF_API_KEY=<key>
-      Get your key at https://qualflare.com/settings/api-keys
+  ⚠️  Authenticate before running /qf-run:
+      qf login <identifier-1> <token>
+      qf login <identifier-2> <token>
+      Get tokens at https://qualflare.com/settings/api-keys
 ```
 
-Omit the `⚠️  QF_API_KEY` lines entirely if `QF_API_KEY` is already set.
+Emit one `qf login <identifier> <token>` line per missing identifier. Omit the entire `⚠️  Authenticate` block if every identifier in `## Packages` is already present in the `qf projects` output.
+
+If `qf` itself is not on PATH (the command exits 127 / not found), still print the summary and append:
+
+```
+  ⚠️  qf CLI not found on PATH. Install it from https://qualflare.com/docs/cli, then run `qf login <identifier> <token>` for each package above.
+```
 
 ---
 

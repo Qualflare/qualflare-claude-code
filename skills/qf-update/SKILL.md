@@ -20,7 +20,7 @@ Stop here — do not proceed without the state file.
 
 Parse the following:
 - **`## Project`** section: extract the current `Generated at:` timestamp.
-- **`## Packages`** table (if present): build a map of `path → qualflareProject`. If absent (legacy format), create a synthetic single entry: `{ path: "(root)", qualflareProject: <project name from ## Project> }`.
+- **`## Packages`** table: build a map of `path → identifier` from the `Path` and `Identifier` columns. The `Identifier` column must be preserved verbatim when the file is rewritten. If the `## Packages` table is absent, stop and tell the user to run `/qf-init` to refresh the state file.
 - **`## Frameworks in use`** table: read every row's `Package`, `Slug`, `File count`, and `Top-level paths` columns. If the table has no `Package` column (legacy format), treat all rows as belonging to `(root)`.
 
 Build an update queue — one item per table row:

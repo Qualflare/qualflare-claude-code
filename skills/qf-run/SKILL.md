@@ -16,16 +16,13 @@ If the file does not exist, tell the user:
 
 Stop here — do not proceed without the state file.
 
-**Parse `## Packages` table** (if present): build a map of `path → qualflareProject`. If the `## Packages` table is absent (legacy format), create a synthetic single entry using the project name from the `## Project` section:
-```
-{ path: "(root)", qualflareProject: <Name from ## Project section> }
-```
+**Parse `## Packages` table**: build a map of `path → identifier` from the `Path` and `Identifier` columns. If the `## Packages` table is absent, stop and tell the user to run `/qf-init` to refresh the state file.
 
 **Parse `## Frameworks in use` table**: read every row's `Package`, `Slug`, and `Top-level paths` columns. If the table has no `Package` column (legacy format without monorepo support), treat all rows as belonging to `(root)`.
 
 **Build the per-package work queue** — one item per (Package, Slug) row:
 ```
-[{ package, qualflareProject, slug, cwd }]
+[{ package, identifier, slug, cwd }]
 ```
 Where `cwd` = `$CLAUDE_PROJECT_DIR` for `(root)`, or `$CLAUDE_PROJECT_DIR/<package-path>` for named packages.
 
@@ -126,12 +123,11 @@ printenv CI               # → "true" for most CI systems
 - Else if `CI=true`: environment = `"ci"`
 - Else: environment = `"local"`
 
-For each result file produced in Step 2, run `qf upload` with `--format`, `--project`, `--branch`, `--commit`, and `--environment`:
+For each result file produced in Step 2, run `qf <identifier> collect` with `--format`, `--branch`, `--commit`, and `--environment`:
 
 ```bash
-qf upload <results-file> \
+qf <identifier> collect <results-file> \
   --format <slug> \
-  --project <qualflareProject> \
   --branch "<branch>" \
   --commit "<commit>" \
   --environment "<environment>"
@@ -139,12 +135,19 @@ qf upload <results-file> \
 
 Omit `--branch` or `--commit` if the corresponding git command failed. Always include `--environment`.
 
-The `<qualflareProject>` is the value from the `## Packages` table row whose `Path` matches the current package. If no match is found, fall back to the project name from the `## Project` section.
+The `<identifier>` is the value from the `## Packages` table row whose `Path` matches the current package — read it from the `Identifier` column.
 
-**If `qf upload` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, `401`, `api-key`, or `key`:**
+**If `qf <identifier> collect` exits with a non-zero code AND the error output contains any of the words `auth`, `token`, `unauthorized`, or `401`:**
 
 Tell the user:
-> "Upload failed — the QF_API_KEY is missing or invalid. Set it with: `export QF_API_KEY=<your-key>` (get your key from https://qualflare.com/settings/api-keys), then re-run `/qf-run`."
+> "Upload failed — your token for `<identifier>` is missing or invalid. Run: `qf login <identifier> <token>` (get your token from https://qualflare.com/settings/api-keys), then re-run `/qf-run`."
+
+Stop here. Do not retry any remaining uploads.
+
+**If the error output contains `no identifier` or `not configured`** (the CLI's hint when the identifier has not been registered locally):
+
+Tell the user:
+> "Upload failed — `<identifier>` is not configured locally. Run: `qf login <identifier> <token>`, then re-run `/qf-run`."
 
 Stop here. Do not retry any remaining uploads.
 
@@ -201,7 +204,7 @@ If a result file cannot be parsed, show `—` for the counts.
 
 For failed test runs, list the first 3–5 failing test names in the summary if they can be extracted from the result file.
 
-If `qf upload` printed a URL or run ID in its stdout or stderr, include it below the table:
+If `qf <identifier> collect` printed a URL or run ID in its stdout or stderr, include it below the table:
 ```
 View run: https://app.qualflare.com/runs/abc123
 ```

@@ -16,16 +16,13 @@ If the file does not exist, tell the user:
 
 Stop here — do not proceed without the state file.
 
-**Parse `## Packages` table** (if present): build a map of `path → qualflareProject`. If absent (legacy format), create a synthetic single entry using the project name from the `## Project` section:
-```
-{ path: "(root)", qualflareProject: <Name from ## Project section> }
-```
+**Parse `## Packages` table**: build a map of `path → identifier` from the `Path` and `Identifier` columns. If the `## Packages` table is absent, stop and tell the user to run `/qf-init` to refresh the state file.
 
 **Parse `## Frameworks in use` table**: read every row's `Package`, `Slug`, and `Top-level paths` columns.
 
 **Build the per-package work queue** — one item per (Package, Slug) row:
 ```
-[{ package, qualflareProject, slug, cwd }]
+[{ package, identifier, slug, cwd }]
 ```
 Where `cwd` = `$CLAUDE_PROJECT_DIR` for `(root)`, or `$CLAUDE_PROJECT_DIR/<package-path>` for named packages.
 
@@ -53,10 +50,10 @@ Remove from the queue any items whose result file does not exist. If the entire 
 
 Stop here.
 
-**Validate result files (pre-flight):** For each item remaining in the queue, run:
+**Validate result files (pre-flight):** For each item remaining in the queue, run (using the queue item's `identifier` as the first positional arg):
 
 ```bash
-qf validate --format <slug> <result-file>
+qf <identifier> validate --format <slug> <result-file>
 ```
 
 - **Exit 0:** file is valid — proceed normally.

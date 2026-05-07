@@ -4,7 +4,7 @@
 > `qualflare-cli/internal/core/domain/models.go`. Keep in sync manually  
 > whenever frameworks are added or renamed in the Go source.
 
-These are the **only valid slugs** accepted by `qf upload --framework <slug>`.
+These are the **only valid slugs** accepted by `qf <identifier> collect --format <slug>`.
 
 ---
 

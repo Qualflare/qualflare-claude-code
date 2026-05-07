@@ -6,7 +6,7 @@ description: >
   drift, and framework tooling availability. Use when the user runs /qf-doctor,
   asks "is Qualflare set up correctly?", or encounters unexpected behavior from
   other qf commands.
-allowed-tools: Read Glob Bash(qf:*) Bash(go:*) Bash(npx:*) Bash(python:*) Bash(php:*) Bash(bundle:*) Bash(printenv:*) Bash(mvn:*) Bash(gradle:*)
+allowed-tools: Read Glob Bash(qf:*) Bash(go:*) Bash(npx:*) Bash(python:*) Bash(php:*) Bash(bundle:*) Bash(mvn:*) Bash(gradle:*)
 ---
 
 Run all checks in order. Collect results as `{ label, status, detail, fix? }` where `status` is one of `ok`, `warn`, or `error`. Print the full report at the end (Step 7) — do not print intermediate results as you go.
@@ -32,15 +32,29 @@ Record whether the CLI is available (`cliAvailable = exit code 0`). Use this fla
 
 > **Skip if `cliAvailable === false`.**
 
+This step depends on the per-package identifiers in `## Packages` of `test-state.md`.
+
+- If `test-state.md` is missing, defer the auth check entirely — Step 4 will surface the missing state file as an error.
+- If `test-state.md` exists but the `## Packages` table is absent or has no rows, emit a single result entry: status `error` — label "Auth", detail "no `## Packages` table in test-state.md", fix `/qf-init`. Then skip the per-identifier loop below.
+- Otherwise, parse `## Packages` to get the list of `Identifier` values and continue.
+
 Run:
 ```bash
-printenv QF_API_KEY
+qf projects
 ```
 
-- **Output is non-empty (exit 0):** status `ok` — label "Auth", detail "QF_API_KEY is set".
-- **Output is empty (exit 1 or empty string):** status `warn` — label "Auth", detail "QF_API_KEY is not set — uploads will fail unless `--api-key` is passed per invocation", fix `export QF_API_KEY=<your-key>  (get your key from https://qualflare.com/settings/api-keys)`.
+Two output shapes to handle:
+- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- One identifier per line → parse into a set.
 
-Note: the Qualflare CLI authenticates via the `QF_API_KEY` environment variable or the `--api-key` flag per invocation. There is no `qf login` command.
+Cross-reference each `Identifier` from `## Packages` against the configured set. Emit one result entry per package:
+
+- **Identifier present in `qf projects`:** status `ok` — label `Auth (${identifier})`, detail `configured`.
+- **Identifier absent:** status `warn` — label `Auth (${identifier})`, detail `not configured`, fix `qf login ${identifier} <token>  (get your token from https://qualflare.com/settings/api-keys)`.
+
+For single-package projects, omit the `(${identifier})` suffix from the label and use just `Auth`.
+
+Tokens live in `~/.config/qualflare/config.toml` (or platform equivalent) after `qf login` — there is no environment-variable fallback.
 
 ---
 
@@ -147,7 +161,8 @@ Qualflare Doctor  ·  <project-name>
 
 Setup
   CLI                ✅  qf 1.2.3
-  Auth               ✅  authenticated · workspace: acme-corp
+  Auth (acme-web)    ✅  configured
+  Auth (acme-api)    ⚠️  not configured
   Config             ✅  stop hook enabled
   State file age     ⚠️  34 day(s) old — getting stale
   Plugin version     ⚠️  state has v0.4.0, current is v0.7.0

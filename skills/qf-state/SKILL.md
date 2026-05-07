@@ -5,7 +5,7 @@ description: >
   counts, hook setting, and last upload info. Use when the user runs
   /qf-state, asks "what does Qualflare know about this project?", or
   asks about their current Qualflare setup.
-allowed-tools: Read Glob Bash(qf:*) Bash(printenv:*)
+allowed-tools: Read Glob Bash(qf:*)
 ---
 
 ## Step 1 — Read state files
@@ -24,7 +24,7 @@ If `config.json` does not exist, treat the hook as "not configured" and note it 
 From `test-state.md`, extract:
 - **Project name** from `## Project`
 - **Generated timestamp** from `## Project`
-- **Package list** from `## Packages` table (if present). If the table is absent (legacy format), create a synthetic single entry: `{ path: "(root)", qualflareProject: <project name> }`.
+- **Package list** from `## Packages` table — collect every row as `{ path, identifier }`. If the `## Packages` table is absent, stop and tell the user to run `/qf-init` to refresh the state file.
 - **Frameworks in use** from `## Frameworks in use` table — including the `Package` column if present. If the table has no `Package` column (legacy format), treat all rows as belonging to `(root)`.
 - **Frameworks suggested** from `## Frameworks suggested` section.
 - **Conventions** from `## Conventions` section.
@@ -56,7 +56,7 @@ Conventions:
 
 Stop hook: ✅ enabled  (or ❌ disabled)
 
-Qualflare backend: QF_API_KEY not set ⚠️
+Qualflare backend: identifier `<id>` configured ✅
 ```
 
 **Multi-package format** (package list has more than one entry):
@@ -69,14 +69,14 @@ Generated: <timestamp from test-state.md>
 
 Packages (2):
 
-  packages/web  →  @acme/web
+  packages/web  →  acme-web    [auth: ✅ configured]
     jest         — 44 test files (packages/web/src/**/*.test.ts)  [was 42 at init]
     playwright   — 18 test files (e2e/**/*.spec.ts)
 
-  packages/api  →  acme-api
+  packages/api  →  acme-api    [auth: ⚠️ not configured]
     golang       — 15 test files (packages/api/**/*_test.go)
 
-  packages/utils  →  acme-utils
+  packages/utils  →  acme-utils  [auth: ✅ configured]
     (no frameworks detected)
 
 Frameworks suggested:
@@ -88,7 +88,8 @@ Conventions:
 
 Stop hook: ✅ enabled  (or ❌ disabled)
 
-Qualflare backend: QF_API_KEY not set ⚠️
+Qualflare backend: 1 of 3 identifiers not configured ⚠️
+  qf login acme-api <token>
 ```
 
 Field guidance:
@@ -103,17 +104,33 @@ Field guidance:
 
 ---
 
-## Step 3 — Check CLI and API key
+## Step 3 — Check CLI and configured identifiers
 
 Run `qf version` to verify the CLI is installed:
 - **Exit 0:** CLI is available. Note the version string.
-- **Exit 127 or not found:** add: "qf CLI not found. Install it from https://qualflare.com/docs/cli"
+- **Exit 127 or not found:** add: "qf CLI not found. Install it from https://qualflare.com/docs/cli". Skip the identifier check.
 
-If CLI is available, run `printenv QF_API_KEY`:
-- **Non-empty output:** show `Qualflare backend: QF_API_KEY configured ✅`
-- **Empty output:** show `Qualflare backend: QF_API_KEY not set ⚠️ — set it with: export QF_API_KEY=<your-key>  (https://qualflare.com/settings/api-keys)`
+If CLI is available, run `qf projects` to list locally configured identifiers. Two output shapes to handle:
+- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- One identifier per line → parse into a set.
 
-Note: the Qualflare CLI authenticates via the `QF_API_KEY` environment variable or the `--api-key` flag. There is no `qf login` command.
+Cross-reference each `Identifier` from the `## Packages` table against this set:
+
+- **All identifiers configured:**
+  - Single-package: `Qualflare backend: identifier `<id>` configured ✅`
+  - Multi-package: `Qualflare backend: <N> of <N> identifiers configured ✅`
+  - Multi-package per-row: append `[auth: ✅ configured]` after the `path → identifier` line.
+- **Some/none configured:**
+  - Single-package: `Qualflare backend: identifier `<id>` not configured ⚠️`
+  - Multi-package: `Qualflare backend: <missing-count> of <total> identifiers not configured ⚠️` and append `[auth: ⚠️ not configured]` after each affected `path → identifier` line.
+
+  In both shapes, append a remediation block listing each missing identifier:
+  ```
+    qf login <missing-identifier-1> <token>
+    qf login <missing-identifier-2> <token>
+  ```
+
+Tokens are obtained from <https://qualflare.com/settings/api-keys>. The CLI stores them locally in `~/.config/qualflare/config.toml` (or platform equivalent) after `qf login`.
 
 ---
 

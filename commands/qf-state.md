@@ -1,5 +1,5 @@
 ---
-description: "Show the current Qualflare state for this project: detected frameworks, file counts, hook setting, and backend connectivity."
+description: "Show the current Qualflare state for this project: detected frameworks, file counts, hook setting, and which CLI identifiers are configured locally."
 argument-hint: ""
 ---
 

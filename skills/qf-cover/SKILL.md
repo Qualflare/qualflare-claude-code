@@ -28,7 +28,7 @@ If the file exists, extract the following information:
 - **Framework slugs in use**: parse the rows of the `## Frameworks in use` table — collect every value in the `Slug` column.
 - **Naming conventions**: read the `## Conventions` section. Capture the value of `Test naming` (e.g., `*.test.ts`, `*_test.go`).
 - **Project name**: read the `## Project` section and capture the `Name` field.
-- **Package list**: parse the `## Packages` table (if present) — collect every row as `{ path, qualflareProject }`. If the `## Packages` table is absent (legacy format), create a synthetic single entry: `{ path: "(root)", qualflareProject: <project name> }`.
+- **Package list**: parse the `## Packages` table — collect every row as `{ path, identifier }`. If the `## Packages` table is absent, stop and tell the user to run `/qf-init` to refresh the state file.
 
 Keep all these values in memory for use in later steps.
 

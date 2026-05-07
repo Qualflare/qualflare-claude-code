@@ -8,7 +8,7 @@ One-time setup, then just code.
 
 ## Quick start
 
-Before you begin, install the [Qualflare CLI](#installing-the-qualflare-cli) and set your `QF_API_KEY` environment variable — then come back here.
+Before you begin, install the [Qualflare CLI](#installing-the-qualflare-cli) — you'll authenticate per project from your shell with `qf login` once setup tells you which identifiers to use.
 
 Add the plugin to Claude Code:
 
@@ -28,7 +28,7 @@ Run setup once in your project root:
 /qf-init
 ```
 
-That's it. `/qf-init` detects your tech stack, reads your package layout, and writes a state file so every future session starts with full context about your tests.
+That's it. `/qf-init` detects your tech stack, reads your package layout, derives a CLI identifier per package, and writes a state file so every future session starts with full context about your tests. At the end, it tells you exactly which `qf login <identifier> <token>` commands to run before your first `/qf-run`.
 
 ## What you can do
 
@@ -77,7 +77,7 @@ Before running `/qf-init`, make sure you have:
 
 - [Claude Code](https://claude.ai/code) — the CLI or desktop app
 - **Qualflare CLI (`qf`)** — installed and on your PATH (see below)
-- `QF_API_KEY` — your API key set as an environment variable ([get one here](https://qualflare.com/settings/api-keys))
+- A Qualflare API token per project — get one at <https://qualflare.com/settings/api-keys>. You'll register it locally with `qf login <identifier> <token>` once `/qf-init` tells you the identifier.
 
 ### Installing the Qualflare CLI
 
@@ -104,10 +104,10 @@ Verify the install with `qf version`. `/qf-run` will not continue until `qf` is 
 Run `/qf-doctor` first. It checks the three things that break most often:
 
 - Is `qf` installed and available on your PATH?
-- Is `QF_API_KEY` set?
+- Is each package's identifier configured locally (`qf projects` lists them)?
 - Is your `test-state.md` still current, or has the project drifted since setup?
 
-Most issues are a missing CLI or a missing environment variable. Fix what the doctor flags and re-run.
+Most issues are a missing CLI or a missing `qf login`. Fix what the doctor flags and re-run.
 
 ## How it stores state
 
@@ -117,7 +117,7 @@ Most issues are a missing CLI or a missing environment variable. Fix what the do
 .qualflare/
 ├── test-state.md    # framework + file-count context — commit this
 ├── config.json      # hook preference — commit this
-└── results/         # last-run output from qf upload — gitignore this
+└── results/         # last-run output from qf collect — gitignore this
 ```
 
 Add `.qualflare/results/` to your `.gitignore`. The other two files are meant to be committed — they give every session the context it needs without running setup again.
