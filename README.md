@@ -59,11 +59,11 @@ It only fires when something worth covering was changed — trivial edits, confi
 
 If your tests run with any of these, Qualflare has you covered.
 
-**Unit** — `jest` · `mocha` · `golang` · `python` (pytest) · `rspec` · `phpunit` · `junit`
+**Unit** — `jest` · `mocha` · `golang` · `python` (pytest) · `rspec` · `phpunit` · `junit` · `testng`
 
 **BDD** — `cucumber` · `karate`
 
-**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe`
+**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe` · `maestro` · `xctest` · `espresso`
 
 **API** — `newman` · `k6`
 
@@ -84,7 +84,7 @@ Before running `/qf-init`, make sure you have:
 **macOS / Linux — Homebrew:**
 
 ```bash
-brew install Qualflare/tap/qf
+brew install qualflare/tap/qf
 ```
 
 **All platforms — binary download:**
@@ -94,18 +94,19 @@ Download the pre-built binary for your OS from [github.com/Qualflare/qualflare-c
 **Docker:**
 
 ```bash
-docker pull ghcr.io/Qualflare/qf:latest
+docker pull ghcr.io/qualflare/qf:latest
 ```
 
 Verify the install with `qf version`. `/qf-run` will not continue until `qf` is on your PATH.
 
 ## When something's off
 
-Run `/qf-doctor` first. It checks the three things that break most often:
+Run `/qf-doctor` first. It checks the things that break most often:
 
 - Is `qf` installed and available on your PATH?
 - Is each package's identifier configured locally (`qf projects` lists them)?
 - Is your `test-state.md` still current, or has the project drifted since setup?
+- Do the framework slugs in the plugin match the installed CLI?
 
 Most issues are a missing CLI or a missing `qf login`. Fix what the doctor flags and re-run.
 

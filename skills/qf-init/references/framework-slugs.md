@@ -12,19 +12,23 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 
 | Slug | Category | Common indicators | Notes |
 |------|----------|-------------------|-------|
-| `junit` | Unit | `pom.xml`, `build.gradle`, `@Test` annotations, JUnit XML reports | Also used by TestNG and other JVM test runners that produce JUnit XML |
+| `junit` | Generic | `pom.xml`, `build.gradle`, `@Test` annotations, JUnit XML reports | Catch-all for JVM runners that produce JUnit XML (Surefire, Failsafe). Prefer `testng` when project uses TestNG directly. |
 | `python` | Unit | `pytest.ini`, `pyproject.toml` (`[tool.pytest...]`), `setup.cfg` (`[tool:pytest]`), `conftest.py`, `requirements*.txt` containing `pytest` | The slug for pytest results |
 | `golang` | Unit | `*_test.go` files, `go.mod` present | The slug for go test results (`go test -json`) |
 | `jest` | Unit | `jest.config.*`, `"jest"` key in `package.json`, `@jest/` deps | Also use for vitest (vitest produces jest-compatible output) |
 | `mocha` | Unit | `mocha` in `package.json` deps/devDeps, `.mocharc.*`, `test/` dir with JS files | |
 | `rspec` | Unit | `Gemfile` containing `rspec`, `.rspec`, `spec/` directory | |
 | `phpunit` | Unit | `phpunit.xml` / `phpunit.xml.dist`, `composer.json` containing `phpunit/phpunit`, `tests/` dir with `*Test.php` | |
+| `testng` | Unit | `testng.xml`, `pom.xml` containing `testng`, `build.gradle` containing `testng`, `@Test` from `org.testng` | Produces its own XML format; also can emit JUnit XML |
 | `cucumber` | BDD | `*.feature` files, `cucumber` in deps (`cucumber-js`, `@cucumber/cucumber`) | |
 | `karate` | BDD | `*.feature` files in `src/test/`, `karate-config.js`, `karate` in `pom.xml` or `build.gradle` | |
 | `playwright` | E2E | `playwright.config.*`, `@playwright/test` in deps | |
 | `cypress` | E2E | `cypress.config.*`, `cypress/` directory, `cypress` in deps | |
 | `selenium` | E2E | `selenium-webdriver` / `selenium` in deps, `SeleniumBase`, `webdriver` imports | No standard file layout; varies by language |
 | `testcafe` | E2E | `.testcaferc.*`, `testcafe` in deps, `*.testcafe.{js,ts}` files | |
+| `maestro` | E2E | `.maestro/` directory, `*.yaml`/`*.yml` files with `appId:` key inside `.maestro/` | Mobile UI testing (iOS/Android); test files are YAML flows |
+| `xctest` | E2E | `*UITests/`, `*Tests/` directories under an Xcode project, `XCTestCase` in `.swift`/`.m` files | iOS/macOS UI and unit testing via Xcode |
+| `espresso` | E2E | `androidTest/` directory, `@RunWith(AndroidJUnit4.class)` in `.java`/`.kt`, `espresso` in `build.gradle` deps | Android UI testing |
 | `newman` | API | `*.postman_collection.json`, `newman` in deps or scripts | Newman is the Postman CLI runner |
 | `k6` | API | `*.k6.js`, `k6/` directory, `import { ... } from 'k6'` in JS files | |
 | `zap` | Security | `zap-report.{xml,json,html}`, `zap.yaml`, `.zap/` directory | OWASP ZAP (Zed Attack Proxy) |
@@ -47,12 +51,16 @@ Use these globs when scanning a project to confirm framework presence or locate 
 | `mocha` | `test/**/*.{js,mjs,cjs}`, `**/*.test.{js,mjs}` |
 | `rspec` | `spec/**/*_spec.rb` |
 | `phpunit` | `tests/**/*Test.php` |
+| `testng` | `**/testng.xml`, `**/testng-results.xml`, `src/test/**/*.java`, `src/test/**/*.kt` |
 | `cucumber` | `**/*.feature` |
 | `karate` | `**/*.feature` (co-located with `src/test/`) |
 | `playwright` | `e2e/**/*.spec.{ts,js}`, `playwright/**/*.spec.{ts,js}`, `**/playwright.config.*` |
 | `cypress` | `cypress/e2e/**/*.cy.{ts,js}`, `**/cypress.config.*` |
 | `selenium` | *(varies by language)* |
 | `testcafe` | `tests/**/*.testcafe.{js,ts}` |
+| `maestro` | `**/.maestro/**/*.yaml`, `**/.maestro/**/*.yml` |
+| `xctest` | `**/*UITests/**/*.swift`, `**/*Tests/**/*.swift`, `**/*UITests/**/*.m`, `**/*Tests/**/*.m` |
+| `espresso` | `**/androidTest/**/*.java`, `**/androidTest/**/*.kt` |
 | `newman` | `**/*.postman_collection.json` |
 | `k6` | `**/*.k6.js`, `**/k6/**/*.js` |
 | `zap` | `**/zap-report.{xml,json,html}` |

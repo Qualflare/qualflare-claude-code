@@ -15,7 +15,7 @@ qualflare-ai/
 │   ├── qf-init/      # First-time setup (detection, test-state.md, hook opt-in)
 │   │   ├── SKILL.md
 │   │   └── references/
-│   │       └── framework-slugs.md   # 19 canonical slugs — keep in sync with Go source
+│   │       └── framework-slugs.md   # 23 canonical slugs — keep in sync with Go source
 │   ├── qf-cover/  # Generate tests for changed source files
 │   ├── qf-run/  # Run tests + qf <identifier> collect
 │   ├── qf-fix/  # Fix failing tests from last run
@@ -59,7 +59,7 @@ bash scripts/check-slugs.sh
 
 This script exits 1 if any slug in the Go source is not reflected in the markdown reference.
 
-**On every version bump:** update `- Plugin version:` in `skills/qf-init/SKILL.md` (the test-state.md template) to match the new version in `.claude-plugin/plugin.json`.
+**On every version bump:** the plugin version in `test-state.md` is written dynamically at `/qf-init` time by reading `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — no manual update required.
 
 ## Testing the hook locally
 

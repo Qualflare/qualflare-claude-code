@@ -53,20 +53,19 @@ Where `<package-dir>` is:
 
 For each item in the work queue, `cd` to the item's `cwd` and run the command from the table below. Always write output to `$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/<slug>.<ext>` — use the absolute project-root path so the output file location is unambiguous regardless of `cwd`.
 
-| Slug | Command (run from `cwd`) | Output file |
-|------|--------------------------|-------------|
-| jest | `npx jest --json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json` | `.qualflare/results/<package-dir>/jest.json` |
-| vitest | `npx vitest run --reporter=json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json` (upload as slug `jest`) | `.qualflare/results/<package-dir>/jest.json` |
-| mocha | `npx mocha --reporter xunit > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/mocha.xml` | `.qualflare/results/<package-dir>/mocha.xml` |
-| pytest | `pytest --junit-xml=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/pytest.xml` | `.qualflare/results/<package-dir>/pytest.xml` |
-| golang | `go test ./... -json > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/golang.json` | `.qualflare/results/<package-dir>/golang.json` |
-| playwright | `npx playwright test --reporter=junit --output-file=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/playwright.xml` | `.qualflare/results/<package-dir>/playwright.xml` |
-| cypress | `npx cypress run --reporter junit --reporter-options mochaFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/cypress.xml` | `.qualflare/results/<package-dir>/cypress.xml` |
-| rspec | `bundle exec rspec --format RspecJunitFormatter --out $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/rspec.xml` | `.qualflare/results/<package-dir>/rspec.xml` |
-| phpunit | `./vendor/bin/phpunit --log-junit $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/phpunit.xml` | `.qualflare/results/<package-dir>/phpunit.xml` |
-| junit | See note below | See note below |
-| cucumber | See note below | varies |
-| k6 | See note below | n/a |
+| Detected slug | Test runner command (run from `cwd`) | Upload slug | Output file |
+|---------------|--------------------------------------|-------------|-------------|
+| `jest` | If `package.json` in `cwd` has `vitest` dep: `npx vitest run --reporter=json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json`; otherwise: `npx jest --json --outputFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/jest.json` | `jest` | `.qualflare/results/<package-dir>/jest.json` |
+| `mocha` | `npx mocha --reporter xunit > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/mocha.xml` | `mocha` | `.qualflare/results/<package-dir>/mocha.xml` |
+| `python` | `pytest --junit-xml=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/python.xml` | `python` | `.qualflare/results/<package-dir>/python.xml` |
+| `golang` | `go test ./... -json > $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/golang.json` | `golang` | `.qualflare/results/<package-dir>/golang.json` |
+| `playwright` | `npx playwright test --reporter=junit --output-file=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/playwright.xml` | `playwright` | `.qualflare/results/<package-dir>/playwright.xml` |
+| `cypress` | `npx cypress run --reporter junit --reporter-options mochaFile=$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/cypress.xml` | `cypress` | `.qualflare/results/<package-dir>/cypress.xml` |
+| `rspec` | `bundle exec rspec --format RspecJunitFormatter --out $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/rspec.xml` | `rspec` | `.qualflare/results/<package-dir>/rspec.xml` |
+| `phpunit` | `./vendor/bin/phpunit --log-junit $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/phpunit.xml` | `phpunit` | `.qualflare/results/<package-dir>/phpunit.xml` |
+| `junit` | See note below | `junit` | See note below |
+| `cucumber` | See note below | `cucumber` | varies |
+| `k6` | See note below | `k6` | n/a |
 
 **junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle).
 - Maven: `mvn test` → `cp target/surefire-reports/*.xml $CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/junit.xml`
@@ -78,7 +77,7 @@ Upload with `--format junit`.
 
 **k6 note:** k6 does not natively produce JUnit XML. Run `k6 run script.js` to execute the load test. Upload support for k6 is limited — direct the user to the Qualflare docs.
 
-**Unknown frameworks:** For any slug not listed above (selenium, testcafe, karate, newman, zap, trivy, snyk, sonarqube), tell the user:
+**Unknown frameworks:** For any slug not listed above (`selenium`, `testcafe`, `karate`, `newman`, `testng`, `maestro`, `xctest`, `espresso`, `zap`, `trivy`, `snyk`, `sonarqube`), tell the user:
 > "I detected `<slug>` in your project but don't have a built-in run command for this framework. Please run the tool manually to generate a results file, then run `/qf-run <results-file>` to upload."
 
 **Continue-on-error:** If a test run command exits non-zero due to **test failures** (not a missing tool or configuration error), note the failure, record it for the summary, and **continue** to the next item in the queue. Do not abort the entire run for test failures.
@@ -98,6 +97,22 @@ If the command exits with code 127 (command not found) or is otherwise unavailab
 > "`qf` CLI not found. Download and install it from https://qualflare.com/docs/cli, then re-run `/qf-run`."
 
 Stop here — do not attempt uploads without the CLI.
+
+**Auth pre-flight:** Before entering the upload loop, collect the unique set of identifiers needed by this run — the `Qualflare Project` values from the `## Packages` table rows that have items in the work queue. Then run:
+
+```bash
+qf projects
+```
+
+This prints one saved identifier per line. For each required identifier that is **not** present in the output, tell the user:
+
+> "Credentials not found for project `<identifier>`. Run the following to save them:
+> ```
+> qf login <identifier> <token>
+> ```
+> Get a token from https://app.qualflare.com/project/<identifier>/settings/access-tokens, then re-run `/qf-run`."
+
+Stop here if any required identifier is missing.
 
 Before uploading, detect git metadata and the runtime environment:
 
@@ -123,7 +138,7 @@ printenv CI               # → "true" for most CI systems
 - Else if `CI=true`: environment = `"ci"`
 - Else: environment = `"local"`
 
-For each result file produced in Step 2, run `qf <identifier> collect` with `--format`, `--branch`, `--commit`, and `--environment`:
+For each result file produced in Step 2, upload via `qf <identifier> collect` using the **upload slug** from the Step 2 table:
 
 ```bash
 qf <identifier> collect <results-file> \
@@ -157,7 +172,7 @@ After all uploads are attempted, if any non-auth failures occurred, print a grou
 
 ```
 Upload failures:
-  packages/api / golang  — <error message>
+  packages/api / golang  — <stderr from qf collect>
 ```
 
 ---
@@ -203,11 +218,6 @@ Parse result files to populate Passed / Failed / Skipped counts where possible:
 If a result file cannot be parsed, show `—` for the counts.
 
 For failed test runs, list the first 3–5 failing test names in the summary if they can be extracted from the result file.
-
-If `qf <identifier> collect` printed a URL or run ID in its stdout or stderr, include it below the table:
-```
-View run: https://app.qualflare.com/runs/abc123
-```
 
 If any frameworks had test failures (❌ status), append:
 ```

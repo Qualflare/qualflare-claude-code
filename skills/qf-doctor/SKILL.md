@@ -17,14 +17,14 @@ Run all checks in order. Collect results as `{ label, status, detail, fix? }` wh
 
 Run:
 ```bash
-qf version
+qf version --short
 ```
 
-- **Exit 0:** status `ok` — label "CLI", detail the version string from stdout (e.g., `qf 1.2.3`).
+- **Exit 0:** status `ok` — label "CLI". Strip the leading `qf ` prefix from the output to extract the bare version number (e.g., output `qf 1.2.3` → version `1.2.3`). Detail: `qf <version>`.
 - **Exit 127 or command not found:** status `error` — label "CLI", detail "qf CLI not found", fix `Install from https://qualflare.com/docs/cli`.
 - **Any other non-zero:** status `warn` — label "CLI", detail the stderr/stdout output (first line).
 
-Record whether the CLI is available (`cliAvailable = exit code 0`). Use this flag to skip Step 2 if false.
+Record whether the CLI is available (`cliAvailable = exit code 0`) and the parsed version string. Use this flag to skip Step 2 if false.
 
 ---
 
@@ -55,6 +55,27 @@ Cross-reference each `Identifier` from `## Packages` against the configured set.
 For single-package projects, omit the `(${identifier})` suffix from the label and use just `Auth`.
 
 Tokens live in `~/.config/qualflare/config.toml` (or platform equivalent) after `qf login` — there is no environment-variable fallback.
+
+**If `QF_API_KEY` is set in the environment:**
+
+Add an extra `warn` entry: label "Legacy env var", detail "`QF_API_KEY` is set but the CLI ignores it — remove it to avoid confusion. Use `qf login <identifier> <token>` instead."
+
+---
+
+## Step 2b — Live framework slug drift check
+
+> **Skip if `cliAvailable === false`.**
+
+Run:
+```bash
+qf list-formats
+```
+
+Parse the output to collect the set of slugs the installed CLI reports (one per line, indented under category headers — strip leading whitespace). Compare against the slugs listed in `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`.
+
+- **CLI slug missing from docs:** status `warn` — label "Slug drift", detail "CLI supports `<slug>` but it is not in framework-slugs.md — plugin may not detect this framework", fix "update plugin".
+- **Doc slug missing from CLI:** status `warn` — label "Slug drift", detail "`<slug>` in framework-slugs.md but not in CLI — may be a renamed or removed framework".
+- **No drift:** status `ok` — label "Slug sync", detail "all <N> slugs match".
 
 ---
 
@@ -144,7 +165,7 @@ For each unique slug in `## Frameworks in use`, run the version command from the
 | junit | check `mvn --version` OR `gradle --version` depending on whether `pom.xml` or `build.gradle` is present |
 | cucumber | `npx cucumber-js --version` |
 
-Skip tooling checks for slugs with no local runner (`selenium`, `testcafe`, `newman`, `k6`, `zap`, `trivy`, `snyk`, `sonarqube`) — these are CI/cloud tools and are not expected to be present locally.
+Skip tooling checks for slugs with no standard local runner (`selenium`, `testcafe`, `karate`, `testng`, `maestro`, `xctest`, `espresso`, `newman`, `k6`, `zap`, `trivy`, `snyk`, `sonarqube`) — these require platform-specific toolchains or CI/cloud setups and are not expected to be present in every dev environment.
 
 For each checked tool:
 - **Exit 0:** status `ok` — label `${slug} tooling`, detail the first line of stdout (version string).
@@ -163,6 +184,7 @@ Setup
   CLI                ✅  qf 1.2.3
   Auth (acme-web)    ✅  configured
   Auth (acme-api)    ⚠️  not configured
+  Slug sync          ✅  all 23 slugs match
   Config             ✅  stop hook enabled
   State file age     ⚠️  34 day(s) old — getting stale
   Plugin version     ⚠️  state has v0.4.0, current is v0.7.0

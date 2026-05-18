@@ -147,6 +147,7 @@ Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the te
 - `<project-name>`: for single-package, infer from root manifest; for monorepos, use the directory name or a descriptive label.
 - `<languages>`: comma-separated list of all detected languages across all packages (e.g., `TypeScript, Go`).
 - `<ISO 8601 timestamp>`: current date and time in ISO 8601 format (e.g., `2026-04-20T14:32:00Z`).
+- `<plugin-version>`: read the `version` field from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (e.g., `0.16.0`).
 - `## Packages` table: one row per package with `Path` and a derived `Identifier` (see derivation rule below). For single-package: one row with path `(root)`.
 - `## Frameworks in use` table: one row per (package, framework) pair including the `Package` column. For single-package: use `(root)` in the Package column.
 - `<suggestions>`: bullet list of suggested frameworks with reasons, or `None` if empty.
@@ -176,7 +177,7 @@ The identifier must match `^[a-z0-9][a-z0-9_-]{0,62}$` and is used as the local 
 - Name: <project-name>
 - Languages: <languages>
 - Generated at: <ISO 8601 timestamp>
-- Plugin version: 0.16.0
+- Plugin version: <plugin-version>
 
 ## Packages
 | Path | Identifier |
@@ -229,7 +230,48 @@ The identifier must match `^[a-z0-9][a-z0-9_-]{0,62}$` and is used as the local 
 
 ---
 
-## Step 6 — Ask about Stop hook
+## Step 6 — Set up authentication
+
+Run:
+```bash
+qf version
+```
+
+If the CLI is unavailable (exit 127 or command not found), tell the user:
+> "`qf` CLI not found. Install it first from https://qualflare.com/docs/cli, then re-run `/qf-init`."
+Stop here.
+
+Run:
+```bash
+qf projects
+```
+
+Capture the set of identifiers that are already saved. For each row in the `## Packages` table of the freshly written `test-state.md`, check whether the `Qualflare Project` value appears in the output.
+
+For each identifier that is **not** yet saved, print a block like this (one block per missing identifier):
+
+```
+To upload results for <package-path> (project: <identifier>), you need to save credentials.
+
+1. Go to: https://app.qualflare.com/project/<identifier>/settings/access-tokens
+2. Create an access token.
+3. Run this command in your terminal (type ! before it to run it here):
+   qf login <identifier> <token>
+```
+
+After printing the blocks, tell the user: "Run the `qf login` command(s) above, then press Enter to continue."
+
+Wait for the user to confirm they've run the login commands. Then re-run `qf projects` to verify. If any required identifier is still missing, repeat the prompt once more. If it is still missing after the second prompt, note it with a warning:
+> "⚠️  Identifier `<id>` still not authenticated. You can run `qf login <id> <token>` manually before running `/qf-run`."
+
+If all identifiers from the `## Packages` table are already present in `qf projects`, skip the login prompts and note: "✅  All project identifiers authenticated."
+
+If the `## Packages` table has no `Qualflare Project` values yet (the user skipped that input), tell the user:
+> "No project identifiers configured in test-state.md. Edit `.qualflare/test-state.md` to fill in the `Qualflare Project` column, then run `qf login <identifier> <token>` for each one."
+
+---
+
+## Step 7 — Ask about Stop hook (was Step 6)
 
 Ask the user:
 
@@ -250,7 +292,7 @@ Create `.qualflare/` if not already done. Write `$CLAUDE_PROJECT_DIR/.qualflare/
 
 ---
 
-## Step 7 — Update CLAUDE.md
+## Step 8 — Update CLAUDE.md
 
 Read `$CLAUDE_PROJECT_DIR/CLAUDE.md` if it exists.
 
@@ -300,7 +342,7 @@ At the start of every session, read `.qualflare/test-state.md` silently before r
 
 ---
 
-## Step 8 — Outro
+## Step 9 — Outro
 
 Run `qf projects` to list the locally configured CLI identifiers. Two cases to handle:
 

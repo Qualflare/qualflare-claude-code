@@ -41,9 +41,9 @@ Where `<package-dir>` is `root` for `(root)` or the package path verbatim (e.g.,
 Use the extension table:
 | Slug | Extension |
 |------|-----------|
-| jest, vitest | `.json` |
-| golang | `.json` |
-| mocha, playwright, cypress, pytest, rspec, phpunit, junit, cucumber | `.xml` |
+| `jest` | `.json` |
+| `golang` | `.json` |
+| `mocha`, `playwright`, `cypress`, `python`, `rspec`, `phpunit`, `junit`, `cucumber` | `.xml` |
 
 Remove from the queue any items whose result file does not exist. If the entire queue has no result files, tell the user:
 > "No result files found. Run `/qf-run` first to generate test results, then re-run `/qf-fix`."
@@ -58,6 +58,8 @@ qf <identifier> validate --format <slug> <result-file>
 
 - **Exit 0:** file is valid — proceed normally.
 - **Non-zero:** warn the user: "Result file for `<slug>` (<package>) failed validation — it may be corrupt or truncated. Re-run `/qf-run` to regenerate, then try `/qf-fix` again." Remove the item from the queue.
+
+If no identifier is recorded for the package (legacy state file without `## Packages` table), skip the `qf validate` step for that package and proceed directly with the in-skill result file parsing.
 
 If the queue is empty after validation, stop.
 
