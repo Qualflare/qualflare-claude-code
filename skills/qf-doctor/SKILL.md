@@ -71,7 +71,7 @@ Run:
 qf list-formats
 ```
 
-Parse the output to collect the set of slugs the installed CLI reports (one per line, indented under category headers — strip leading whitespace). Compare against the slugs listed in `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`.
+Parse the output to collect the set of slugs the installed CLI reports. Each framework line has the format `  - <slug>` (two spaces, a dash, a space, then the slug). Extract just the slug by stripping the leading `  - ` prefix. Lines that do not start with `  - ` (category headers, blank lines) are skipped. Compare the resulting set against the slugs listed in `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`.
 
 - **CLI slug missing from docs:** status `warn` — label "Slug drift", detail "CLI supports `<slug>` but it is not in framework-slugs.md — plugin may not detect this framework", fix "update plugin".
 - **Doc slug missing from CLI:** status `warn` — label "Slug drift", detail "`<slug>` in framework-slugs.md but not in CLI — may be a renamed or removed framework".
