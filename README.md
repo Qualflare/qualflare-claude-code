@@ -13,7 +13,7 @@ Before you begin, install the [Qualflare CLI](#installing-the-qualflare-cli) —
 Add the plugin to Claude Code:
 
 ```
-/plugin marketplace add Qualflare/qualflare-ai
+/plugin marketplace add Qualflare/qualflare-claude-code
 ```
 
 Install it in your current project:
@@ -37,11 +37,11 @@ Every command runs from the Claude Code chat — no terminal, no config files.
 | Command | When to use it |
 |---------|----------------|
 | `/qf-init` | Once, to set up a new project — detects frameworks, counts test files, and optionally enables the coverage nudge |
-| `/qf-cover [path]` | After writing code — generates tests for the source files you just changed |
-| `/qf-run [slug]` | When you're ready to verify — runs your test suite and uploads results to Qualflare |
-| `/qf-fix [path]` | When tests are red — analyzes the last run and patches your code until they pass |
-| `/qf-doctor` | When something feels wrong — health check covering CLI, API key, config, and file-count drift |
-| `/qf-update` | When you've added test files — refreshes counts without re-running full setup |
+| `/qf-cover [path or glob]` | After writing code — generates tests for the source files you just changed |
+| `/qf-run [slug or results-file]` | When you're ready to verify — runs your test suite and uploads results to Qualflare |
+| `/qf-fix [slug or path]` | When tests are red — analyzes the last run and patches your code until they pass |
+| `/qf-doctor` | When something feels wrong — health check covering CLI, auth, config, slug drift, and file-count drift |
+| `/qf-update [slug or path]` | When you've added test files — refreshes counts without re-running full setup |
 | `/qf-state` | When you want to see what Qualflare knows — shows frameworks, file counts, and hook status |
 | `/qf-hook on\|off` | Any time — toggle the end-of-session coverage nudge on or off |
 
@@ -77,7 +77,19 @@ Before running `/qf-init`, make sure you have:
 
 - [Claude Code](https://claude.ai/code) — the CLI or desktop app
 - **Qualflare CLI (`qf`)** — installed and on your PATH (see below)
-- A Qualflare API token per project — get one at <https://qualflare.com/settings/api-keys>. You'll register it locally with `qf login <identifier> <token>` once `/qf-init` tells you the identifier.
+- A Qualflare token per identifier — `/qf-init` tells you which identifiers your project needs and prints the exact `qf login` commands to run.
+
+### Authentication
+
+Qualflare uses per-project tokens stored locally. After `/qf-init` prints your identifiers, register each one:
+
+```bash
+qf login <identifier> <token>
+```
+
+In a monorepo, each package gets its own identifier — run `qf login` once per package. Tokens live in `~/.config/qualflare/config.toml` after login. Get tokens at `https://app.qualflare.com/project/<identifier>/settings/access-tokens`.
+
+`QF_API_KEY` is no longer read by the CLI — remove it from your environment if you have it set.
 
 ### Installing the Qualflare CLI
 
@@ -118,7 +130,7 @@ Most issues are a missing CLI or a missing `qf login`. Fix what the doctor flags
 .qualflare/
 ├── test-state.md    # framework + file-count context — commit this
 ├── config.json      # hook preference — commit this
-└── results/         # last-run output from qf collect — gitignore this
+└── results/         # raw test-runner output uploaded by qf collect — gitignore this
 ```
 
 Add `.qualflare/results/` to your `.gitignore`. The other two files are meant to be committed — they give every session the context it needs without running setup again.
@@ -133,7 +145,7 @@ Pull the latest version at any time:
 
 ## Contributing
 
-Bug reports and pull requests are welcome — open an issue at [github.com/Qualflare/qualflare-ai/issues](https://github.com/Qualflare/qualflare-ai/issues).
+Bug reports and pull requests are welcome — open an issue at [github.com/Qualflare/qualflare-claude-code/issues](https://github.com/Qualflare/qualflare-claude-code/issues).
 
 For development notes — how to test the hook, how to add a new framework, how to cut a release — see [`CLAUDE.md`](./CLAUDE.md).
 
@@ -143,4 +155,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
-[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI releases](https://github.com/Qualflare/qualflare-cli/releases) · [Issues](https://github.com/Qualflare/qualflare-ai/issues) · [Changelog](https://github.com/Qualflare/qualflare-ai/releases)
+[Qualflare](https://qualflare.com) · [Docs](https://qualflare.com/docs) · [CLI releases](https://github.com/Qualflare/qualflare-cli/releases) · [Issues](https://github.com/Qualflare/qualflare-claude-code/issues) · [Changelog](https://github.com/Qualflare/qualflare-claude-code/releases)
