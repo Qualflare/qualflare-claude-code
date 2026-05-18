@@ -168,6 +168,16 @@ Stop here. Do not retry any remaining uploads.
 
 **For any other non-zero exit code:** Log the failure (package + slug + error message) and **continue** with the remaining items.
 
+**Diagnosis discipline (strict):**
+
+When `qf collect` fails, your job is to **report the CLI's stderr verbatim** — not to diagnose what's wrong with the user's CLI install. In particular, you MUST NOT:
+
+- Read `~/.config/qualflare/config.toml`, `~/Library/Application Support/qualflare/config.toml`, or any other CLI config file for diagnosis. The auth store contains only `{schema_version, identifiers.<id>.token}` — there are no other fields to inspect or suggest.
+- Suggest `--api-endpoint`, `QF_API_ENDPOINT`, `--api-key`, `QF_API_KEY`, or any flag / env var not explicitly listed in the upload command above. The API endpoint is hardcoded in the CLI binary (`https://api.qualflare.com`) and is not user-configurable. `QF_API_KEY` is intentionally ignored by the CLI.
+- Recommend re-running `/qf-init` "to capture missing configuration" — `/qf-init` writes nothing the CLI reads at runtime beyond the token registered via `qf login`.
+
+If the stderr does not match the recognized auth (`auth`/`token`/`unauthorized`/`401`) or identifier (`no identifier`/`not configured`) patterns above, record the raw stderr in the failure list and move on. Do not theorize.
+
 After all uploads are attempted, if any non-auth failures occurred, print a grouped failure list:
 
 ```

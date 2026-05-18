@@ -8,7 +8,7 @@
     {
       "name": "qualflare",
       "source": "./",
-      "version": "0.17.0",
+      "version": "0.18.0",
       "description": "Test management & reporting for Claude Code via Qualflare CLI",
       "longDescription": "Qualflare gives Claude Code a persistent, project-aware view of your test suite. After a one-time /qf-init, every session starts with full context about your frameworks, package layout, naming conventions, and live file counts — so /qf-cover, /qf-run, and /qf-fix work intelligently from the very first message.\n\nKey commands:\n  /qf-init   — first-time project setup (detects frameworks, configures auth)\n  /qf-cover  — generate tests for recently changed source files\n  /qf-run    — run your test suite and upload results to Qualflare\n  /qf-fix    — diagnose and fix failing tests from the last run\n  /qf-doctor — health check: CLI, auth, config, drift, tooling\n  /qf-update — refresh file counts without re-running full setup\n  /qf-state  — inspect what Qualflare knows about this project\n  /qf-hook on|off — toggle the end-of-session coverage nudge",
       "categories": ["testing", "ci-cd", "productivity"],
