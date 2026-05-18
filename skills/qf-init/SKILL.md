@@ -241,33 +241,51 @@ If the CLI is unavailable (exit 127 or command not found), tell the user:
 > "`qf` CLI not found. Install it first from https://qualflare.com/docs/cli, then re-run `/qf-init`."
 Stop here.
 
+If the `## Packages` table has no `Identifier` values (the user skipped that input), tell the user:
+> "No project identifiers configured in test-state.md. Edit `.qualflare/test-state.md` to fill in the `Identifier` column, then run `/qf-init` again or run `qf login <identifier> <token>` for each one manually."
+
+Stop here — skip the rest of Step 6.
+
 Run:
 ```bash
 qf projects
 ```
 
-Capture the set of identifiers that are already saved. For each row in the `## Packages` table of the freshly written `test-state.md`, check whether the `Qualflare Project` value appears in the output.
+Capture the set of identifiers that are already saved. Two output shapes to handle:
+- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- One identifier per line → parse into a set.
 
-For each identifier that is **not** yet saved, print a block like this (one block per missing identifier):
+Build `missing` = the list of `Identifier` values from `## Packages` that are **not** present in the saved set.
 
-```
-To upload results for <package-path> (project: <identifier>), you need to save credentials.
+If `missing` is empty: print `✅  All project identifiers are already authenticated.` and proceed to Step 7.
 
-1. Go to: https://app.qualflare.com/project/<identifier>/settings/access-tokens
-2. Create an access token.
-3. Run this command in your terminal (type ! before it to run it here):
-   qf login <identifier> <token>
-```
+Otherwise, for **each identifier in `missing`**, in order:
 
-After printing the blocks, tell the user: "Run the `qf login` command(s) above, then press Enter to continue."
+1. Print exactly:
+   ```
+   🔑 Need a token for `<identifier>`.
+      Create one at: https://app.qualflare.com/project/<identifier>/settings/access-tokens
+      Paste the token below (or type `skip` to authenticate this identifier later):
+   ```
+2. **Stop and wait for the user's next message.** Treat the message as the raw token string (trimmed of whitespace).
+3. If the message is the literal word `skip` (case-insensitive) or is empty:
+   - Print: `⏭  Skipped <identifier> — run \`qf login <identifier> <token>\` later.`
+   - Continue to the next missing identifier.
+4. Run:
+   ```bash
+   qf login <identifier> <pasted-token>
+   ```
+5. **On exit 0:** print `✅  Saved credentials for <identifier>.`
+6. **On non-zero exit:** print the first line of stderr, then re-prompt once:
+   ```
+   Token rejected. Paste a fresh token for `<identifier>` (or `skip`):
+   ```
+   Repeat steps 2-5 for this identifier. If it fails a second time, print:
+   > `⚠️  Could not save credentials for <identifier> after 2 attempts. Run \`qf login <identifier> <token>\` manually before running \`/qf-run\`.`
+   Then continue to the next missing identifier.
 
-Wait for the user to confirm they've run the login commands. Then re-run `qf projects` to verify. If any required identifier is still missing, repeat the prompt once more. If it is still missing after the second prompt, note it with a warning:
-> "⚠️  Identifier `<id>` still not authenticated. You can run `qf login <id> <token>` manually before running `/qf-run`."
-
-If all identifiers from the `## Packages` table are already present in `qf projects`, skip the login prompts and note: "✅  All project identifiers authenticated."
-
-If the `## Packages` table has no `Qualflare Project` values yet (the user skipped that input), tell the user:
-> "No project identifiers configured in test-state.md. Edit `.qualflare/test-state.md` to fill in the `Qualflare Project` column, then run `qf login <identifier> <token>` for each one."
+After processing all missing identifiers, re-run `qf projects` and confirm that every non-skipped identifier from `## Packages` now appears in the output. If any expected identifier is still missing, print:
+> `⚠️  Identifier \`<id>\` still not saved — run \`qf login <id> <token>\` before using \`/qf-run\`.`
 
 ---
 
@@ -351,7 +369,7 @@ Run `qf projects` to list the locally configured CLI identifiers. Two cases to h
 
 Cross-reference the identifiers in the `## Packages` table against this set. Build a list of `Identifier` values that are missing locally.
 
-Print the following summary. Include the `⚠️  Authenticate` block only when one or more identifiers from `## Packages` are missing from `qf projects`:
+Print the following summary. Include the `⚠️  Authenticate` block **only** when one or more identifiers are still not configured after Step 6 (i.e., were skipped, failed twice, or the CLI wasn't found):
 
 ```
 ✅ Qualflare initialized!
@@ -365,13 +383,13 @@ Next steps:
   /qf-cover   — generate tests for changed code
   /qf-run     — run tests and upload to Qualflare
   /qf-update  — refresh file counts after adding tests
-  ⚠️  Authenticate before running /qf-run:
+  ⚠️  Still need to authenticate before running /qf-run:
       qf login <identifier-1> <token>
       qf login <identifier-2> <token>
-      Get tokens at https://qualflare.com/settings/api-keys
+      Get tokens at https://app.qualflare.com/project/<identifier>/settings/access-tokens
 ```
 
-Emit one `qf login <identifier> <token>` line per missing identifier. Omit the entire `⚠️  Authenticate` block if every identifier in `## Packages` is already present in the `qf projects` output.
+Emit one `qf login <identifier> <token>` line per identifier that is still missing from `qf projects`. Omit the entire `⚠️  Authenticate` block if every identifier in `## Packages` is configured.
 
 If `qf` itself is not on PATH (the command exits 127 / not found), still print the summary and append:
 
