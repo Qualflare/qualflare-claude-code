@@ -12,14 +12,52 @@
           {
             "result": {
               "status": "passed",
-              "duration": 201999
+              "duration": 201333
             },
             "arguments": [],
             "keyword": "Given ",
             "line": 3,
             "name": "a number",
             "match": {
-              "location": "features/step_definitions/s.js:1"
+              "location": "features/step_definitions/s.js:3"
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      },
+      {
+        "description": "",
+        "id": "calc;divide",
+        "keyword": "Scenario",
+        "line": 4,
+        "name": "divide",
+        "steps": [
+          {
+            "result": {
+              "status": "passed",
+              "duration": 23834
+            },
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 5,
+            "name": "a number",
+            "match": {
+              "location": "features/step_definitions/s.js:3"
+            }
+          },
+          {
+            "result": {
+              "status": "failed",
+              "duration": 520792,
+              "error_message": "AssertionError [ERR_ASSERTION]: Infinity == 0\n    + expected - actual\n\n    -Infinity\n    +0\n\n    at World.<anonymous> (/project/features/step_definitions/s.js:4:53)"
+            },
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 6,
+            "name": "dividing by zero fails",
+            "match": {
+              "location": "features/step_definitions/s.js:4"
             }
           }
         ],

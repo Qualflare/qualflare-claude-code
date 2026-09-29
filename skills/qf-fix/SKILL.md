@@ -76,20 +76,23 @@ For each item in the queue, read its result file and extract all failing tests.
 
 **jest / vitest (JSON format):**
 
-The top-level object has a `testResults` array. Each element represents one test file:
-- `testFilePath` — absolute path to the test file
-- `testResults` — array of individual test cases
+The top-level object has a `testResults` array (Jest `--json` and Vitest `--reporter=json` write the same shape). Each element is one test file:
+- `name` — absolute path to the test file
+- `assertionResults` — array of individual test cases, each with `status`, `ancestorTitles`, `title` and `failureMessages`
+- `status` and `message` — the file's own status; a file that failed to load (syntax error, missing import) has `status === "failed"`, a non-empty `message` and no failing `assertionResults`
 
-For each test case where `status === "failed"`:
+For each entry of `assertionResults` where `status === "failed"`:
 ```
 {
   package,
   slug,
-  testFile: testFilePath,
+  testFile: testResults[i].name,
   testName: [...ancestorTitles, title].join(' > '),
   errorMessage: failureMessages[0] (first failure message, truncated to first 20 lines)
 }
 ```
+
+For a file with `status === "failed"` and no failed `assertionResults`, record one failure with `testName: "(test file failed to run)"` and `errorMessage: message` (first 20 lines).
 
 **golang (NDJSON format):**
 
@@ -130,7 +133,7 @@ The top-level object has a `failures` array. For each element:
   slug,
   testFile: spec.file (relative to the config's rootDir),
   testName: [...suite titles, spec.title].join(' > '),
-  errorMessage: the failing result's error.message (first 20 lines)
+  errorMessage: the failing result's errors[0].message, or error.message (first 20 lines)
 }
 ```
 
@@ -179,7 +182,8 @@ For each failing testcase:
   package,
   slug,
   testName: testcase @name attribute,
-  classname: testcase @classname attribute (may be a file path in pytest),
+  classname: testcase @classname attribute (dotted module path in pytest, fully qualified class in JUnit),
+  testFile: testcase @file attribute when present (phpunit),
   errorMessage: failure element @message attribute + text content (first 20 lines)
 }
 ```
@@ -262,9 +266,10 @@ Process failures one at a time. For each failure:
 3. Fall back to Grep if the source file is unclear.
 
 **From JUnit XML (pytest, phpunit, junit):**
-1. The `classname` attribute often contains the file path (pytest uses `path/to/file::ClassName`) or the fully qualified class name (JUnit: `com.acme.FooTest` → `src/test/java/com/acme/FooTest.java`).
-2. For pytest: extract the file path from `classname` (everything before `::`) or from the error message stack trace.
-3. Fall back to Grep if the file path is unclear.
+1. **pytest:** `classname` is the dotted module path, plus the class for tests in a class (`tests.test_auth` or `tests.test_auth.TestLogin`) — there is no `::`. The failure text names the file and line (`tests/test_auth.py:4: AssertionError`); use that. Otherwise turn dots into `/` and try `<classname>.py`, then again without the last segment.
+2. **phpunit:** each `<testcase>` has `file` and `line` attributes — the test file and the test method's line.
+3. **junit:** `classname` is the fully qualified class name (`com.acme.FooTest` → `src/test/java/com/acme/FooTest.java`, or under the module the report came from).
+4. Fall back to Grep if the file path is unclear.
 
 ### 4b — Read and understand
 
