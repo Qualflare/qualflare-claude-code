@@ -14,7 +14,7 @@ You are executing the `qf-init` skill. Follow every step below in order. Do not 
 
 ## Step 1 — Verify project root
 
-Check whether the current working directory (`$CLAUDE_PROJECT_DIR`) contains at least one of the following:
+Check whether the current working directory (`${CLAUDE_PROJECT_DIR}`) contains at least one of the following:
 
 - `.git/`
 - `package.json`
@@ -36,7 +36,7 @@ Do not proceed past this step if no root indicator is found.
 
 ## Step 2 — Detect workspaces
 
-Check whether the project is a monorepo by looking for any of these signals at `$CLAUDE_PROJECT_DIR`:
+Check whether the project is a monorepo by looking for any of these signals at `${CLAUDE_PROJECT_DIR}`:
 
 1. **npm/pnpm workspaces**: Read `package.json`. If it contains a top-level `workspaces` key (either an array or an object with a `packages` array), the project is a monorepo.
 2. **pnpm workspace file**: Check whether `pnpm-workspace.yaml` exists.
@@ -59,7 +59,7 @@ Enumerate packages. The source depends on the signal:
 - **Multiple pyproject.toml**: each directory containing a `pyproject.toml` (other than the root) is a package.
 
 For each package directory found, build a package entry:
-- **Path**: directory path relative to `$CLAUDE_PROJECT_DIR` (e.g., `packages/web`).
+- **Path**: directory path relative to `${CLAUDE_PROJECT_DIR}` (e.g., `packages/web`).
 - **Name**: read the manifest in that directory — `package.json` `"name"`, last segment of `go.mod` module path, `pyproject.toml` `[project].name`. If no manifest or no name field, fall back to the directory path itself.
 
 **Edge case:** If workspace declarations exist but no matching directories are found on disk, treat the project as single-package and emit a note: "Workspace configuration found but no matching package directories exist — treating as single-package."
@@ -73,8 +73,8 @@ Tell the user: `"Detecting your project's tech stack..."`
 For monorepos with more than one package: `"Detecting tech stack for <N> packages..."`
 
 Dispatch **one Explore subagent per package**. Each subagent is scoped to its package directory. Compute `<PACKAGE_DIR>` per package:
-- If the package path is `(root)`: `<PACKAGE_DIR>` = `$CLAUDE_PROJECT_DIR`
-- Otherwise: `<PACKAGE_DIR>` = `$CLAUDE_PROJECT_DIR/<package-path>`
+- If the package path is `(root)`: `<PACKAGE_DIR>` = `${CLAUDE_PROJECT_DIR}`
+- Otherwise: `<PACKAGE_DIR>` = `${CLAUDE_PROJECT_DIR}/<package-path>`
 
 Use this brief verbatim for each subagent — substitute `<PACKAGE_DIR>` and `${CLAUDE_PLUGIN_ROOT}` with actual paths:
 
@@ -86,7 +86,7 @@ Use this brief verbatim for each subagent — substitute `<PACKAGE_DIR>` and `${
 >
 > **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list. **Exception — Vitest:** report a Vitest package under `jest`, never `vitest` (the reference lists `vitest` only because the CLI accepts it; /qf-run, /qf-fix and /qf-doctor handle Vitest through the `jest` row).
 >
-> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count; for a slug whose glob cell is `*(skip counting)*`, do not Glob — report its count as `—`. Report: slug, estimated test count, top-level test directories (paths relative to `$CLAUDE_PROJECT_DIR`, not `<PACKAGE_DIR>`).
+> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count; for a slug whose glob cell is `*(skip counting)*`, do not Glob — report its count as `—`. Report: slug, estimated test count, top-level test directories (paths relative to `${CLAUDE_PROJECT_DIR}`, not `<PACKAGE_DIR>`).
 >
 > **Suggestions:** If you see strong indicators for a framework the project doesn't currently use (e.g., React SPA with no E2E framework), note it as a suggestion.
 >
@@ -139,10 +139,10 @@ If `.qualflare/test-state.md` already exists, tell the user:
 Create the `.qualflare/` directory if it does not exist:
 
 ```bash
-mkdir -p $CLAUDE_PROJECT_DIR/.qualflare
+mkdir -p "${CLAUDE_PROJECT_DIR}/.qualflare"
 ```
 
-Write (or overwrite) `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` using the template below. Fill in all `<placeholder>` values from Steps 3 and 4:
+Write (or overwrite) `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md` using the template below. Fill in all `<placeholder>` values from Steps 3 and 4:
 
 - `<project-name>`: for single-package, infer from root manifest; for monorepos, use the directory name or a descriptive label.
 - `<languages>`: comma-separated list of all detected languages across all packages (e.g., `TypeScript, Go`).
@@ -242,7 +242,7 @@ If the CLI is unavailable (exit 127 or command not found), tell the user:
 Stop here.
 
 If the `## Packages` table has no `Identifier` values (the user skipped that input), tell the user:
-> "No project identifiers configured in test-state.md. Edit `.qualflare/test-state.md` to fill in the `Identifier` column, then run `/qf-init` again or run `qf login <identifier> <token>` for each one manually."
+> "No project identifiers configured in test-state.md. Edit `.qualflare/test-state.md` to fill in the `Identifier` column, then run `/qf-init` again."
 
 Stop here — skip the rest of Step 6.
 
@@ -252,40 +252,33 @@ qf projects
 ```
 
 Capture the set of identifiers that are already saved. Two output shapes to handle:
-- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- The CLI's hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured. (That hint is the CLI's own wording; never repeat its `<token>` argument form to the user.)
 - One identifier per line → parse into a set.
 
 Build `missing` = the list of `Identifier` values from `## Packages` that are **not** present in the saved set.
 
 If `missing` is empty: print `✅  All project identifiers are already authenticated.` and proceed to Step 7.
 
-Otherwise, for **each identifier in `missing`**, in order:
+**Never ask for, accept, or handle the token yourself.** A Qualflare token is a project write credential: anything typed into this chat is sent to the model and kept in the session transcript, and a token passed as a command-line argument is visible in the process list and shell history. The user registers each token with `qf login <identifier>`, which reads it at a hidden terminal prompt. If the user pastes a token into the chat anyway, do not use it or repeat it; tell them to revoke it in Qualflare (it is now in the transcript), create a new one, and register it with `qf login` as below.
 
-1. Print exactly:
-   ```
-   🔑 Need a token for `<identifier>`.
-      Create one at: https://app.qualflare.com/project/<identifier>/settings/access-tokens
-      Paste the token below (or type `skip` to authenticate this identifier later):
-   ```
-2. **Stop and wait for the user's next message.** Treat the message as the raw token string (trimmed of whitespace).
-3. If the message is the literal word `skip` (case-insensitive) or is empty:
-   - Print: `⏭  Skipped <identifier> — run \`qf login <identifier> <token>\` later.`
-   - Continue to the next missing identifier.
-4. Run:
-   ```bash
-   qf login <identifier> <pasted-token>
-   ```
-5. **On exit 0:** print `✅  Saved credentials for <identifier>.`
-6. **On non-zero exit:** print the first line of stderr, then re-prompt once:
-   ```
-   Token rejected. Paste a fresh token for `<identifier>` (or `skip`):
-   ```
-   Repeat steps 2-5 for this identifier. If it fails a second time, print:
-   > `⚠️  Could not save credentials for <identifier> after 2 attempts. Run \`qf login <identifier> <token>\` manually before running \`/qf-run\`.`
-   Then continue to the next missing identifier.
+Print, once, for all identifiers in `missing`:
 
-After processing all missing identifiers, re-run `qf projects` and confirm that every non-skipped identifier from `## Packages` now appears in the output. If any expected identifier is still missing, print:
-> `⚠️  Identifier \`<id>\` still not saved — run \`qf login <id> <token>\` before using \`/qf-run\`.`
+```
+🔑 Authenticate these Qualflare projects from your own terminal — not in this chat:
+
+     qf login <identifier-1>
+     qf login <identifier-2>
+
+   Each command asks for the token at a hidden prompt.
+   Create tokens at: https://app.qualflare.com/project/<identifier>/settings/access-tokens
+
+   Reply `done` when finished, or `skip` to authenticate later.
+```
+
+Emit one `qf login <identifier>` line per missing identifier. Then **stop and wait for the user's next message.** Do not run `qf login` yourself: it needs an interactive terminal for the hidden prompt, and the Bash tool does not provide one.
+
+- If the user replies `skip` (case-insensitive): print `⏭  Skipped authentication — run \`qf login <identifier>\` in your terminal before running \`/qf-run\`.` and proceed to Step 7.
+- Otherwise re-run `qf projects` and rebuild `missing`. For each identifier that is now saved, print `✅  Saved credentials for <identifier>.` For each identifier still missing, print `⚠️  Identifier \`<id>\` still not saved — run \`qf login <id>\` in your terminal before using \`/qf-run\`.` Then proceed to Step 7 (do not loop).
 
 ---
 
@@ -299,7 +292,7 @@ Ask the user:
 
 Accept `yes`, `no`, `y`, or `n` (case-insensitive). Treat any variant of "yes"/"y" as `true` and any variant of "no"/"n" as `false`.
 
-Create `.qualflare/` if not already done. Write `$CLAUDE_PROJECT_DIR/.qualflare/config.json` with the following content, substituting `<true or false>` with the boolean result:
+Create `.qualflare/` if not already done. Write `${CLAUDE_PROJECT_DIR}/.qualflare/config.json` with the following content, substituting `<true or false>` with the boolean result:
 
 ```json
 {
@@ -312,7 +305,7 @@ Create `.qualflare/` if not already done. Write `$CLAUDE_PROJECT_DIR/.qualflare/
 
 ## Step 8 — Update CLAUDE.md
 
-Read `$CLAUDE_PROJECT_DIR/CLAUDE.md` if it exists.
+Read `${CLAUDE_PROJECT_DIR}/CLAUDE.md` if it exists.
 
 Determine which case applies:
 
@@ -364,12 +357,12 @@ At the start of every session, read `.qualflare/test-state.md` silently before r
 
 Run `qf projects` to list the locally configured CLI identifiers. Two cases to handle:
 
-- **Output is the literal hint** `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- **Output is the CLI's hint** `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
 - **Output is one identifier per line** → parse into a set.
 
 Cross-reference the identifiers in the `## Packages` table against this set. Build a list of `Identifier` values that are missing locally.
 
-Print the following summary. Include the `⚠️  Authenticate` block **only** when one or more identifiers are still not configured after Step 6 (i.e., were skipped, failed twice, or the CLI wasn't found):
+Print the following summary. Include the `⚠️  Authenticate` block **only** when one or more identifiers are still not configured after Step 6 (i.e., were skipped, not yet registered, or the CLI wasn't found):
 
 ```
 ✅ Qualflare initialized!
@@ -383,18 +376,18 @@ Next steps:
   /qf-cover   — generate tests for changed code
   /qf-run     — run tests and upload to Qualflare
   /qf-update  — refresh file counts after adding tests
-  ⚠️  Still need to authenticate before running /qf-run:
-      qf login <identifier-1> <token>
-      qf login <identifier-2> <token>
-      Get tokens at https://app.qualflare.com/project/<identifier>/settings/access-tokens
+  ⚠️  Still need to authenticate before running /qf-run — in your own terminal:
+      qf login <identifier-1>
+      qf login <identifier-2>
+      Each asks for the token at a hidden prompt. Get tokens at https://app.qualflare.com/project/<identifier>/settings/access-tokens
 ```
 
-Emit one `qf login <identifier> <token>` line per identifier that is still missing from `qf projects`. Omit the entire `⚠️  Authenticate` block if every identifier in `## Packages` is configured.
+Emit one `qf login <identifier>` line per identifier that is still missing from `qf projects`. Omit the entire `⚠️  Authenticate` block if every identifier in `## Packages` is configured.
 
 If `qf` itself is not on PATH (the command exits 127 / not found), still print the summary and append:
 
 ```
-  ⚠️  qf CLI not found on PATH. Install it from https://qualflare.com/docs/cli, then run `qf login <identifier> <token>` for each package above.
+  ⚠️  qf CLI not found on PATH. Install it from https://qualflare.com/docs/cli, then run `qf login <identifier>` in your terminal for each package above.
 ```
 
 ---

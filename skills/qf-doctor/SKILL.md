@@ -44,13 +44,13 @@ qf projects
 ```
 
 Two output shapes to handle:
-- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- The CLI's hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
 - One identifier per line → parse into a set.
 
 Cross-reference each `Identifier` from `## Packages` against the configured set. Emit one result entry per package:
 
 - **Identifier present in `qf projects`:** status `ok` — label `Auth (${identifier})`, detail `configured`.
-- **Identifier absent:** status `warn` — label `Auth (${identifier})`, detail `not configured`, fix `qf login ${identifier} <token>  (get your token from https://qualflare.com/settings/api-keys)`.
+- **Identifier absent:** status `warn` — label `Auth (${identifier})`, detail `not configured`, fix `qf login ${identifier}` — run it in your own terminal; it asks for the token at a hidden prompt (get your token from https://qualflare.com/settings/api-keys). Never solicit the token in the chat.
 
 For single-package projects, omit the `(${identifier})` suffix from the label and use just `Auth`.
 
@@ -58,7 +58,7 @@ Tokens live in `~/.config/qualflare/config.toml` (or platform equivalent) after 
 
 **If `QF_API_KEY` is set in the environment:**
 
-Add an extra `warn` entry: label "Legacy env var", detail "`QF_API_KEY` is set but the CLI ignores it — remove it to avoid confusion. Use `qf login <identifier> <token>` instead."
+Add an extra `warn` entry: label "Legacy env var", detail "`QF_API_KEY` is set but the CLI ignores it — remove it to avoid confusion. Use `qf login <identifier>` in your terminal instead."
 
 ---
 
@@ -81,7 +81,7 @@ Parse the output to collect the set of slugs the installed CLI reports. Each fra
 
 ## Step 3 — Check config.json
 
-Attempt to read `$CLAUDE_PROJECT_DIR/.qualflare/config.json`.
+Attempt to read `${CLAUDE_PROJECT_DIR}/.qualflare/config.json`.
 
 - **File missing:** status `error` — label "Config", detail "`.qualflare/config.json` not found", fix `/qf-init`.
 - **File exists but invalid JSON:** status `error` — label "Config", detail "config.json is not valid JSON", fix `/qf-init`.
@@ -103,7 +103,7 @@ Attempt to read `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json`.
 
 ## Step 4 — Check test-state.md
 
-Attempt to read `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
+Attempt to read `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md`.
 
 - **File missing:** status `error` — label "State file", detail "`.qualflare/test-state.md` not found", fix `/qf-init`. Set `stateOk = false`. Skip Steps 5 and 6 (they depend on the state file).
 - **File exists:** Set `stateOk = true`. Parse the following fields:
@@ -150,7 +150,7 @@ For single-package projects, omit the package name from the label: label `${slug
 
 > **Skip if `stateOk === false`.**
 
-For each unique slug in `## Frameworks in use`, run the version command from the table below. Run from `$CLAUDE_PROJECT_DIR` (or the package `cwd` for monorepos). If a slug appears in multiple packages, check once per unique `cwd`.
+For each unique slug in `## Frameworks in use`, run the version command from the table below. Run from `${CLAUDE_PROJECT_DIR}` (or the package `cwd` for monorepos). If a slug appears in multiple packages, check once per unique `cwd`.
 
 | Slug | Version command |
 |------|----------------|

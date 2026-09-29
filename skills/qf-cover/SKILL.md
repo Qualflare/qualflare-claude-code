@@ -6,6 +6,7 @@ description: >
   Use when the user runs /qf-cover, asks to "add test coverage", asks to
   "write tests", reacts to the Qualflare hook suggestion, or explicitly invokes
   this skill. Pass --all to cover an entire file/directory regardless of what changed.
+argument-hint: "[--all] [optional file glob or path]"
 allowed-tools: Read Write Edit Glob Bash(git diff:*) Bash(git status:*) Bash(grep:*)
 ---
 
@@ -15,7 +16,7 @@ You are executing the `qf-cover` skill. Follow every step below in order. Do not
 
 ## Step 1 — Read test state
 
-Read the file at `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
+Read the file at `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md`.
 
 If the file does not exist, stop immediately and tell the user:
 
@@ -363,7 +364,7 @@ Choose the framework based on the slugs extracted in Step 1 and the source file'
 
 ## Step 7 — Refresh file counts and suggest next step
 
-After writing test files, silently update the file counts in `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md` for each (package, slug) pair touched in Step 6.
+After writing test files, silently update the file counts in `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md` for each (package, slug) pair touched in Step 6.
 
 For each touched (package, slug):
 

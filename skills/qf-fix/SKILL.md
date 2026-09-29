@@ -4,12 +4,13 @@ description: >
   Analyze failing tests from the last /qf-run and fix the source code to make
   them pass. Use when the user runs /qf-fix, asks to "fix failing tests", or
   asks to "fix test failures". Requires result files from a prior /qf-run.
+argument-hint: "[framework-slug or package/path]"
 allowed-tools: Read Edit Glob Bash(qf:*) Bash(npx:*) Bash(go test:*) Bash(pytest:*) Bash(cd:*) Bash(node:*) Bash(mkdir:*) Bash(cp:*) Bash(grep:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*)
 ---
 
 ## Step 1 — Read state and locate result files
 
-Read `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
+Read `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md`.
 
 If the file does not exist, tell the user:
 > "No Qualflare state file found. Please run `/qf-init` first to set up the integration."
@@ -24,7 +25,7 @@ Stop here — do not proceed without the state file.
 ```
 [{ package, identifier, slug, cwd }]
 ```
-Where `cwd` = `$CLAUDE_PROJECT_DIR` for `(root)`, or `$CLAUDE_PROJECT_DIR/<package-path>` for named packages.
+Where `cwd` = `${CLAUDE_PROJECT_DIR}` for `(root)`, or `${CLAUDE_PROJECT_DIR}/<package-path>` for named packages.
 
 **Filter via `$ARGUMENTS`** (tie-breaker: any value containing `/` is a package path; anything else is a slug):
 - `$ARGUMENTS` contains `/` → keep only items whose `package` starts with that prefix.
@@ -32,34 +33,38 @@ Where `cwd` = `$CLAUDE_PROJECT_DIR` for `(root)`, or `$CLAUDE_PROJECT_DIR/<packa
 - `$ARGUMENTS` contains both a `/`-containing token and a separate word (e.g., `packages/web jest`) → apply both: filter by package path AND by slug.
 - `$ARGUMENTS` is empty → no filtering; process the full queue.
 
-**Locate result files:** For each queue item, check whether the corresponding result file exists at:
-```
-$CLAUDE_PROJECT_DIR/.qualflare/results/<package-dir>/<slug>.<ext>
-```
-Where `<package-dir>` is `root` for `(root)` or the package path verbatim (e.g., `packages/web`).
+**Locate results:** For each queue item, check whether its result path from the last `/qf-run` exists. `<R>` is `${CLAUDE_PROJECT_DIR}/.qualflare/results/<package-dir>`, where `<package-dir>` is `root` for `(root)` or the package path verbatim (e.g., `packages/web`). These paths and formats must match `/qf-run` Step 2:
 
-Use the extension table:
-| Slug | Extension |
-|------|-----------|
-| `jest` | `.json` |
-| `golang` | `.json` |
-| `mocha`, `playwright`, `cypress`, `python`, `rspec`, `phpunit`, `junit`, `cucumber` | `.xml` |
+| Slug | Result path | Format |
+|------|-------------|--------|
+| `jest` | `<R>/jest.json` | Jest/Vitest JSON |
+| `golang` | `<R>/golang.json` | `go test -json` (NDJSON) |
+| `mocha` | `<R>/mocha.json` | Mocha JSON reporter |
+| `playwright` | `<R>/playwright.json` | Playwright JSON reporter |
+| `cypress` | `<R>/cypress/*.json` | Mochawesome JSON, one file per spec |
+| `rspec` | `<R>/rspec.json` | RSpec JSON formatter |
+| `cucumber` | `<R>/cucumber.json` | Cucumber JSON |
+| `python`, `phpunit` | `<R>/<slug>.xml` | JUnit XML |
+| `junit` | `<R>/junit/*.xml` | JUnit XML, one file per test class |
 
-Remove from the queue any items whose result file does not exist. If the entire queue has no result files, tell the user:
+For the two directory rows, the item's result files are every matching file in the directory; the item exists only if at least one file matches.
+
+Remove from the queue any items whose results do not exist. If the entire queue has no results, tell the user:
 > "No result files found. Run `/qf-run` first to generate test results, then re-run `/qf-fix`."
 
 Stop here.
 
-**Validate result files (pre-flight):** For each item remaining in the queue, run (using the queue item's `identifier` as the first positional arg):
+**Validate result files (pre-flight):** `qf validate` parses files locally. It never calls the API and needs no `qf login`, so a missing or rejected token must never stop `/qf-fix`. For each item remaining in the queue, run it on the item's result files:
 
 ```bash
-qf <identifier> validate --format <slug> <result-file>
+qf validate --format <slug> <result-file> [<result-file> ...]
 ```
 
-- **Exit 0:** file is valid — proceed normally.
-- **Non-zero:** warn the user: "Result file for `<slug>` (<package>) failed validation — it may be corrupt or truncated. Re-run `/qf-run` to regenerate, then try `/qf-fix` again." Remove the item from the queue.
+Read the output, not just the exit code, because every failure exits 1:
 
-If no identifier is recorded for the package (legacy state file without `## Packages` table), skip the `qf validate` step for that package and proceed directly with the in-skill result file parsing.
+- **Exit 0:** the files are valid — proceed normally.
+- **Non-zero and the output has a line containing `: invalid - `** (the CLI prints one `<file>: invalid - <reason>` line per file it could not parse): the file itself is bad. Warn the user: "Result file for `<slug>` (<package>) failed validation: `<reason>`. Re-run `/qf-run` to regenerate, then try `/qf-fix` again." Remove the item from the queue.
+- **Non-zero with no such line** — for example exit 127 (`qf` not installed), `Error: unsupported format: <slug>` (the installed CLI predates this slug), or `Error: no identifier "validate" configured` (a CLI release older than the login-free `qf validate`): this is a CLI problem, not a bad result file. Keep every item in the queue, skip validation for the rest of this run, and tell the user once: "Skipped result-file validation — `qf validate` is unavailable (`<first stderr line>`). Upgrade the Qualflare CLI to enable it." Continue with the in-skill parsing below.
 
 If the queue is empty after validation, stop.
 
@@ -103,7 +108,68 @@ For each failing test:
 }
 ```
 
-**JUnit XML format** (pytest, playwright, cypress, rspec, phpunit, mocha, cucumber, junit):
+**mocha (Mocha JSON reporter):**
+
+The top-level object has a `failures` array. For each element:
+```
+{
+  package,
+  slug,
+  testFile: file,
+  testName: fullTitle,
+  errorMessage: err.message + err.stack (first 20 lines)
+}
+```
+
+**playwright (Playwright JSON reporter):**
+
+`suites` is a tree: each suite has `specs` and nested `suites`. Walk it recursively. For each spec, look at every entry in `tests`; the test failed when its `status` is `unexpected`, or when the last element of `results` has `status` `failed` or `timedOut`.
+```
+{
+  package,
+  slug,
+  testFile: spec.file (relative to the config's rootDir),
+  testName: [...suite titles, spec.title].join(' > '),
+  errorMessage: the failing result's error.message (first 20 lines)
+}
+```
+
+**cypress (Mochawesome JSON, one file per spec):** read every JSON file in the directory. Each file has a `results` array; each result has `fullFile` (the spec path) and a `suites` tree (each suite has `tests` and nested `suites`). For each test where `fail === true`:
+```
+{
+  package,
+  slug,
+  testFile: result.fullFile,
+  testName: test.fullTitle,
+  errorMessage: test.err.message + test.err.estack (first 20 lines)
+}
+```
+
+**rspec (RSpec JSON formatter):** the top-level object has an `examples` array. For each example where `status === "failed"`:
+```
+{
+  package,
+  slug,
+  testFile: file_path,
+  line: line_number,
+  testName: full_description,
+  errorMessage: exception.message + exception.backtrace (first 20 lines)
+}
+```
+
+**cucumber (Cucumber JSON):** the top level is an array of features, each with a `uri` and `elements` (scenarios). A scenario failed when any of its `steps` has `result.status === "failed"`:
+```
+{
+  package,
+  slug,
+  testFile: feature.uri,
+  testName: feature.name + ' > ' + scenario.name,
+  failingStep: the failed step's keyword + name, and its match.location (the step definition),
+  errorMessage: the failed step's result.error_message (first 20 lines)
+}
+```
+
+**JUnit XML format** (python, phpunit, junit — for `junit`, every file in the directory):
 
 Parse the XML structure. Find all `<testcase>` elements that contain a `<failure>` or `<error>` child.
 
@@ -190,11 +256,15 @@ Process failures one at a time. For each failure:
 2. Read the test file to understand what it's testing (what functions/methods it calls on what types).
 3. The source is the non-test file in the same package directory (e.g., if `auth_test.go` tests `ValidateToken`, look for `validate_token` or `token.go` in the same dir).
 
-**From JUnit XML (pytest, playwright, etc.):**
-1. The `classname` attribute often contains the file path (pytest uses `path/to/file::ClassName`).
+**From mocha, playwright, cypress, rspec and cucumber failures:**
+1. The test file is in `testFile` (for rspec also `line`). Read it.
+2. Scan `errorMessage` for stack frames pointing into non-test source files, as for Jest. For cucumber, the failing step's `match.location` names the step definition; the code under test is what that step definition calls.
+3. Fall back to Grep if the source file is unclear.
+
+**From JUnit XML (pytest, phpunit, junit):**
+1. The `classname` attribute often contains the file path (pytest uses `path/to/file::ClassName`) or the fully qualified class name (JUnit: `com.acme.FooTest` → `src/test/java/com/acme/FooTest.java`).
 2. For pytest: extract the file path from `classname` (everything before `::`) or from the error message stack trace.
-3. For playwright: the test file path is usually in the `classname`.
-4. Fall back to Grep if the file path is unclear.
+3. Fall back to Grep if the file path is unclear.
 
 ### 4b — Read and understand
 
@@ -228,7 +298,7 @@ After all edits are applied, re-run the affected frameworks to confirm the fixes
 
 For each (package, slug) that had at least one fix applied:
 
-Re-run using the same commands as `/qf-run` Step 2, writing to the same result file path to overwrite the previous results.
+Re-run using the same commands as `/qf-run` Step 2, writing to the same result path to overwrite the previous results (for the directory results, `cypress` and `junit`, delete and recreate the directory first, as `/qf-run` does).
 
 **Vitest note:** When `slug === "jest"`, first check whether the project's `package.json` contains `"vitest"` in `devDependencies` or `dependencies`. If yes, use `npx vitest run` instead of `npx jest` — vitest projects store results under the `jest` slug (mapped at init time) but require the vitest runner.
 

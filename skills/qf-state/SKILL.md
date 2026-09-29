@@ -11,8 +11,8 @@ allowed-tools: Read Glob Bash(qf:*)
 ## Step 1 — Read state files
 
 Read both of the following files:
-- `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`
-- `$CLAUDE_PROJECT_DIR/.qualflare/config.json`
+- `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md`
+- `${CLAUDE_PROJECT_DIR}/.qualflare/config.json`
 
 If `test-state.md` does not exist, tell the user:
 > "No Qualflare state file found. Please run `/qf-init` first to set up the integration."
@@ -89,7 +89,7 @@ Conventions:
 Stop hook: ✅ enabled  (or ❌ disabled)
 
 Qualflare backend: 1 of 3 identifiers not configured ⚠️
-  qf login acme-api <token>
+  qf login acme-api   (run in your terminal)
 ```
 
 Field guidance:
@@ -111,7 +111,7 @@ Run `qf version` to verify the CLI is installed:
 - **Exit 127 or not found:** add: "qf CLI not found. Install it from https://qualflare.com/docs/cli". Skip the identifier check.
 
 If CLI is available, run `qf projects` to list locally configured identifiers. Two output shapes to handle:
-- The literal hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
+- The CLI's hint `No projects configured. Run 'qf login <identifier> <token>' to get started.` → treat as zero configured.
 - One identifier per line → parse into a set.
 
 Cross-reference each `Identifier` from the `## Packages` table against this set:
@@ -126,11 +126,11 @@ Cross-reference each `Identifier` from the `## Packages` table against this set:
 
   In both shapes, append a remediation block listing each missing identifier:
   ```
-    qf login <missing-identifier-1> <token>
-    qf login <missing-identifier-2> <token>
+    qf login <missing-identifier-1>
+    qf login <missing-identifier-2>
   ```
 
-Tokens are obtained from <https://qualflare.com/settings/api-keys>. The CLI stores them locally in `~/.config/qualflare/config.toml` (or platform equivalent) after `qf login`.
+Tokens are obtained from <https://qualflare.com/settings/api-keys>. Run each `qf login` in your own terminal — it asks for the token at a hidden prompt; never paste a token into the chat. The CLI stores them locally in `~/.config/qualflare/config.toml` (or platform equivalent) after `qf login`.
 
 ---
 

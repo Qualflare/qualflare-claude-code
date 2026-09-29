@@ -6,12 +6,13 @@ description: >
   in-place. Does not re-detect frameworks or change any other content.
   Use when the user runs /qf-update, asks to "refresh test counts", or after
   adding new test files without wanting to re-run full /qf-init.
+argument-hint: "[framework-slug or package/path]"
 allowed-tools: Read Edit Glob
 ---
 
 ## Step 1 — Read test state
 
-Read `$CLAUDE_PROJECT_DIR/.qualflare/test-state.md`.
+Read `${CLAUDE_PROJECT_DIR}/.qualflare/test-state.md`.
 
 If the file does not exist, tell the user:
 > "No Qualflare state file found. Run `/qf-init` first to set up the integration."

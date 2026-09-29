@@ -28,7 +28,7 @@ Run setup once in your project root:
 /qf-init
 ```
 
-That's it. `/qf-init` detects your tech stack, reads your package layout, derives a CLI identifier per package, and writes a state file so every future session starts with full context about your tests. At the end, it tells you exactly which `qf login <identifier> <token>` commands to run before your first `/qf-run`.
+That's it. `/qf-init` detects your tech stack, reads your package layout, derives a CLI identifier per package, and writes a state file so every future session starts with full context about your tests. At the end, it tells you exactly which `qf login <identifier>` commands to run in your terminal before your first `/qf-run`. It never asks for your token in the chat.
 
 ## What you can do
 
@@ -38,7 +38,7 @@ Every command runs from the Claude Code chat — no terminal, no config files.
 |---------|----------------|
 | `/qf-init` | Once, to set up a new project — detects frameworks, counts test files, and optionally enables the coverage nudge |
 | `/qf-cover [path or glob]` | After writing code — generates tests for the source files you just changed |
-| `/qf-run [slug or results-file]` | When you're ready to verify — runs your test suite and uploads results to Qualflare |
+| `/qf-run [slug, path, or report-path slug]` | When you're ready to verify — runs your test suite and uploads results to Qualflare. Pass a report file you produced yourself (e.g. `/qf-run zap-report.json zap`) to upload it directly |
 | `/qf-fix [slug or path]` | When tests are red — analyzes the last run and patches your code until they pass |
 | `/qf-doctor` | When something feels wrong — health check covering CLI, auth, config, slug drift, and file-count drift |
 | `/qf-update [slug or path]` | When you've added test files — refreshes counts without re-running full setup |
@@ -71,6 +71,8 @@ If your tests run with any of these, Qualflare has you covered.
 
 **Generic** — `junit` (any JUnit XML) · `ctrf` ([Common Test Report Format](https://ctrf.io) JSON) · `qualflare-json` (output of Qualflare's own reporters)
 
+`/qf-run` runs `jest`, `mocha`, `python`, `golang`, `playwright`, `cypress`, `rspec`, `phpunit`, `junit` (Maven/Gradle) and `cucumber` for you, writing each in the report format the Qualflare CLI parses. Cypress reports are Mochawesome JSON, so add `mochawesome` as a dev dependency. For every other framework, produce the tool's report yourself and upload it with `/qf-run <report-path> <slug>`.
+
 `/qf-init` records Vitest packages under the `jest` slug, which reads the same report. Multi-framework monorepos work too — `/qf-init` detects each workspace and tracks them separately.
 
 ## Requirements
@@ -83,11 +85,13 @@ Before running `/qf-init`, make sure you have:
 
 ### Authentication
 
-Qualflare uses per-project tokens stored locally. After `/qf-init` prints your identifiers, register each one:
+Qualflare uses per-project tokens stored locally. After `/qf-init` prints your identifiers, register each one **in your own terminal**:
 
 ```bash
-qf login <identifier> <token>
+qf login <identifier>
 ```
+
+`qf login` asks for the token at a hidden prompt. Don't paste tokens into the Claude Code chat (the chat is sent to the model and saved in the session transcript), and don't pass them as a command-line argument (shell history and the process list keep them).
 
 In a monorepo, each package gets its own identifier — run `qf login` once per package. Tokens live in `~/.config/qualflare/config.toml` after login. Get tokens at `https://app.qualflare.com/project/<identifier>/settings/access-tokens`.
 
@@ -112,6 +116,10 @@ docker pull ghcr.io/qualflare/qf:latest
 ```
 
 Verify the install with `qf version`. `/qf-run` will not continue until `qf` is on your PATH.
+
+### Environments
+
+`/qf-run` uploads to the environment named by `QF_ENVIRONMENT` if you set it, and otherwise to `development`, which every Qualflare project starts with. Qualflare rejects an environment name your project doesn't have.
 
 ## When something's off
 
