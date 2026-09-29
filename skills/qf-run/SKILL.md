@@ -120,7 +120,7 @@ If the copy matches no files, the run produced no reports — record it as a run
 | `newman` | Newman JSON reporter output |
 | `k6` | k6 JSON end-of-test summary |
 | `testng`, `maestro`, `espresso` | JUnit XML |
-| `xctest` | JUnit XML converted from XCTest, or an `.xcresult` bundle |
+| `xctest` | JUnit XML (e.g. `xcodebuild test … \| xcbeautify --report junit`, or `xcpretty -r junit`). **Not** an `.xcresult` bundle: `qf collect` treats a directory as a folder of `*.json` reports and rejects the bundle. Convert it to JUnit XML first. |
 | `zap` | OWASP ZAP JSON report |
 | `trivy` | Trivy JSON output |
 | `snyk` | Snyk JSON test output |

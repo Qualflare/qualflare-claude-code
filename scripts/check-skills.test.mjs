@@ -241,3 +241,15 @@ test('the cypress fixture holds two same-named specs kept apart by overwrite=fal
     assert.equal(String(marge.overwrite), 'false');
   }
 });
+
+// `qf collect` expands any directory argument to its top-level *.json files and
+// errors when there are none (qualflare-cli expandDirectories), so an .xcresult
+// bundle — a directory with no top-level JSON — never reaches the xctest parser.
+test('qf-run does not offer an .xcresult bundle as an uploadable xctest report', async () => {
+  const { readFileSync } = await import('node:fs');
+  const row = readFileSync(join(REPO, 'skills/qf-run/SKILL.md'), 'utf8').split('\n').find((l) => l.startsWith('| `xctest` |'));
+  assert.ok(row, 'qf-run has an xctest format row');
+  assert.doesNotMatch(row, /\bor an `\.xcresult` bundle/);
+  assert.match(row, /JUnit XML/);
+  assert.match(row, /\*\*Not\*\* an `\.xcresult` bundle/);
+});
