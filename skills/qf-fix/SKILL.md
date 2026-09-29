@@ -298,7 +298,7 @@ After all edits are applied, re-run the affected frameworks to confirm the fixes
 
 For each (package, slug) that had at least one fix applied:
 
-Re-run using the same commands as `/qf-run` Step 2, writing to the same result path to overwrite the previous results (for the directory results, `cypress` and `junit`, delete and recreate the directory first, as `/qf-run` does).
+Re-run using the same commands as `/qf-run` Step 2, writing to the same result path — including the step that first removes the previous result file or directory, so a runner that crashes before writing cannot leave the old failures in place to be read as this run's.
 
 **Vitest note:** When `slug === "jest"`, first check whether the project's `package.json` contains `"vitest"` in `devDependencies` or `dependencies`. If yes, use `npx vitest run` instead of `npx jest` — vitest projects store results under the `jest` slug (mapped at init time) but require the vitest runner.
 

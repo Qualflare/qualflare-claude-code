@@ -6,7 +6,7 @@ description: >
   and upload", or explicitly invokes this skill after writing tests. Also
   uploads an existing report file: /qf-run <report-path> [slug].
 argument-hint: "[framework-slug | package/path | report-path [slug]]"
-allowed-tools: Read Glob Bash(qf:*) Bash(mkdir:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(PLAYWRIGHT_JSON_OUTPUT_FILE=* npx playwright test *) Bash(cd:*) Bash(cp:*) Bash(git:*)
+allowed-tools: Read Glob Bash(qf:*) Bash(mkdir:*) Bash(rm -f:*) Bash(rm -rf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(PLAYWRIGHT_JSON_OUTPUT_FILE=* npx playwright test *) Bash(cd:*) Bash(cp:*) Bash(git:*)
 ---
 
 Paths below use `${CLAUDE_PROJECT_DIR}`, which Claude Code replaces with the absolute project root when it loads this skill. The Bash tool does not have a `CLAUDE_PROJECT_DIR` variable, so always run the paths exactly as written here (already expanded), in double quotes.
@@ -70,35 +70,41 @@ Every command writes the format the CLI parser for that upload slug reads (`qf v
 
 | Detected slug | Test runner command (run from `cwd`) | Upload slug | Result path |
 |---------------|--------------------------------------|-------------|-------------|
-| `jest` | If `package.json` in `cwd` has a `vitest` dependency: `npx vitest run --reporter=json --outputFile="<R>/jest.json"`; otherwise: `npx jest --json --outputFile="<R>/jest.json"` | `jest` | `<R>/jest.json` |
-| `mocha` | `npx mocha --reporter json --reporter-option output="<R>/mocha.json"` | `mocha` | `<R>/mocha.json` |
-| `python` | `pytest --junit-xml="<R>/python.xml"` | `python` | `<R>/python.xml` |
-| `golang` | `go test ./... -json > "<R>/golang.json"` | `golang` | `<R>/golang.json` |
-| `playwright` | `PLAYWRIGHT_JSON_OUTPUT_FILE="<R>/playwright.json" npx playwright test --reporter=json` | `playwright` | `<R>/playwright.json` |
+| `jest` | `rm -f "<R>/jest.json"`, then, if `package.json` in `cwd` has a `vitest` dependency: `npx vitest run --reporter=json --outputFile="<R>/jest.json"`; otherwise: `npx jest --json --outputFile="<R>/jest.json"` | `jest` | `<R>/jest.json` |
+| `mocha` | `rm -f "<R>/mocha.json"`, then `npx mocha --reporter json --reporter-option output="<R>/mocha.json"` | `mocha` | `<R>/mocha.json` |
+| `python` | `rm -f "<R>/python.xml"`, then `pytest --junit-xml="<R>/python.xml"` | `python` | `<R>/python.xml` |
+| `golang` | `rm -f "<R>/golang.json"`, then `go test ./... -json > "<R>/golang.json"` | `golang` | `<R>/golang.json` |
+| `playwright` | `rm -f "<R>/playwright.json"`, then `PLAYWRIGHT_JSON_OUTPUT_FILE="<R>/playwright.json" npx playwright test --reporter=json` | `playwright` | `<R>/playwright.json` |
 | `cypress` | See note below | `cypress` | `<R>/cypress/` (one JSON per spec) |
-| `rspec` | `bundle exec rspec --format json --out "<R>/rspec.json"` | `rspec` | `<R>/rspec.json` |
-| `phpunit` | `./vendor/bin/phpunit --log-junit "<R>/phpunit.xml"` | `phpunit` | `<R>/phpunit.xml` |
+| `rspec` | `rm -f "<R>/rspec.json"`, then `bundle exec rspec --format json --out "<R>/rspec.json"` | `rspec` | `<R>/rspec.json` |
+| `phpunit` | `rm -f "<R>/phpunit.xml"`, then `./vendor/bin/phpunit --log-junit "<R>/phpunit.xml"` | `phpunit` | `<R>/phpunit.xml` |
 | `junit` | See note below | `junit` | `<R>/junit/` (one XML per test class) |
 | `cucumber` | See note below | `cucumber` | `<R>/cucumber.json` |
 
-**Directory results are replaced, not appended to.** Before running a framework whose result path is a directory (`cypress`, `junit`), delete that directory if it exists and recreate it, so files from an earlier run are not uploaded with this one.
+**Remove the previous result before every run.** Each row (and each note below) first deletes that framework's result file (`rm -f`) or result directory (`rm -rf`, then `mkdir -p`). A runner that crashes or hits a configuration error before writing anything would otherwise leave the last run's report in place, and it would upload as this commit's results.
 
 **cypress note:** the CLI's Cypress parser reads Mochawesome JSON. Check whether `mochawesome` is in the `cwd` package's `devDependencies`/`dependencies`. If it is not, tell the user: "Cypress results upload as Mochawesome JSON. Add it with `npm install --save-dev mochawesome` (or your package manager's equivalent), then re-run `/qf-run`." and skip this item. If it is:
 ```bash
+rm -rf "<R>/cypress" && mkdir -p "<R>/cypress"
 npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress,reportFilename=[name],html=false,json=true,quiet=true"
 ```
 Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`.
 
 **junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class, so copy them into a directory — never onto a single file path.
-- Maven: `mvn test`, then `cp target/surefire-reports/TEST-*.xml "<R>/junit/"`
-- Gradle: `gradle test` (or `./gradlew test` when the wrapper exists), then `cp build/test-results/test/TEST-*.xml "<R>/junit/"`
+
+First clear this run's output, both ours and the build tool's, so an earlier run's reports cannot be collected:
+```bash
+rm -rf "<R>/junit" && mkdir -p "<R>/junit"
+```
+- Maven: `mvn clean test` (`clean` deletes `target/`, so no stale `surefire-reports` survive), then `cp target/surefire-reports/TEST-*.xml "<R>/junit/"`
+- Gradle: `gradle cleanTest test` (or `./gradlew cleanTest test` when the wrapper exists; `cleanTest` deletes the test results and forces the tests to run even when Gradle considers them up to date), then `cp build/test-results/test/TEST-*.xml "<R>/junit/"`
 
 If the copy matches no files, the run produced no reports — record it as a run failure for the summary.
 
-**cucumber note:** the CLI's Cucumber parser reads Cucumber JSON. Inspect the project to pick the runner:
+**cucumber note:** the CLI's Cucumber parser reads Cucumber JSON. First `rm -f "<R>/cucumber.json"`. Then inspect the project to pick the runner:
 - JavaScript (`@cucumber/cucumber` in deps): `npx cucumber-js --format json:"<R>/cucumber.json"`
 - Ruby (`cucumber` in `Gemfile`): `bundle exec cucumber --format json --out "<R>/cucumber.json"`
-- Java (Maven with `cucumber-java`): `mvn test -Dcucumber.plugin="json:<R>/cucumber.json"`
+- Java (Maven with `cucumber-java`): `mvn clean test -Dcucumber.plugin="json:<R>/cucumber.json"`
 
 **Frameworks without a runner command:** for any other slug (`selenium`, `testcafe`, `karate`, `newman`, `k6`, `testng`, `maestro`, `xctest`, `espresso`, `zap`, `trivy`, `snyk`, `sonarqube`), do not guess a command. Tell the user which report format the CLI reads for that slug, from this table:
 
@@ -118,7 +124,9 @@ If the copy matches no files, the run produced no reports — record it as a run
 
 > "I detected `<slug>` in your project but don't run it automatically. Produce a `<format>` report with the tool, then upload it with `/qf-run <report-path> <slug>`."
 
-**Continue-on-error:** If a test run command exits non-zero due to **test failures** (not a missing tool or configuration error), note the failure, record it for the summary, and **continue** to the next item in the queue. Do not abort the entire run for test failures. If the result path does not exist after the command finishes, record a run failure for that item and do not upload it.
+**Continue-on-error:** If a test run command exits non-zero due to **test failures** (not a missing tool or configuration error), note the failure, record it for the summary, and **continue** to the next item in the queue. Do not abort the entire run for test failures.
+
+**A run that wrote nothing new is a run failure, not an upload.** Because the previous result was removed first, the result path after the command reflects this run only. If it does not exist, is empty (a crashed `go test … > file` still creates the file), or — for a directory — contains no report files, the runner exited with a configuration or crash error before writing results: record a run failure for that item with the runner's error output, and do not upload it.
 
 ---
 

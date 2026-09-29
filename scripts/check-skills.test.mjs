@@ -171,3 +171,32 @@ test('a qf-run runner row without a fixture in its parser format is flagged', ()
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// A runner that crashes before writing leaves the previous report in place; the
+// upload step only checks existence, so it would upload as this commit's run.
+test('a runner row that does not remove its previous result first is flagged', () => {
+  const head = ['| Detected slug | Cmd | Upload slug | Result path |', '|---|---|---|---|'];
+  const hit = (rows, extra = '') => checksHit(plugin({ 'skills/qf-run/SKILL.md': skill('qf-run', [...head, ...rows].join('\n') + '\n\n' + extra, 'framework-slug') })).includes('stale-result-upload');
+  // file results
+  assert.ok(hit(['| `jest` | `npx jest --json --outputFile="<R>/jest.json"` | `jest` | `<R>/jest.json` |']), 'no rm at all');
+  assert.ok(hit(['| `jest` | `npx jest --json --outputFile="<R>/jest.json"`, then `rm -f "<R>/jest.json"` | `jest` | `<R>/jest.json` |']), 'rm after the runner');
+  assert.ok(hit(['| `jest` | `rm -f "<R>/other.json"`, then `npx jest --json --outputFile="<R>/jest.json"` | `jest` | `<R>/jest.json` |']), 'rm of a different file');
+  assert.ok(!hit(['| `jest` | `rm -f "<R>/jest.json"`, then `npx jest --json --outputFile="<R>/jest.json"` | `jest` | `<R>/jest.json` |']));
+  assert.ok(!hit(['| `phpunit` | `rm -f "<R>/phpunit.xml"`, then `./vendor/bin/phpunit --log-junit "<R>/phpunit.xml"` | `phpunit` | `<R>/phpunit.xml` |']));
+  // "See note below" rows are checked against the note
+  const cuc = '| `cucumber` | See note below | `cucumber` | `<R>/cucumber.json` |';
+  assert.ok(hit([cuc], '**cucumber note:** run `npx cucumber-js --format json:"<R>/cucumber.json"`.\n'));
+  assert.ok(hit([cuc], '**cucumber note:** First `rm -f "<R>/cucumber.json"`.\n\n**cypress note:** x\n'.replace('First', 'Later, after `npx cucumber-js`,')));
+  assert.ok(hit([cuc]), 'a missing note is flagged');
+  assert.ok(!hit([cuc], '**cucumber note:** First `rm -f "<R>/cucumber.json"`. Then `npx cucumber-js --format json:"<R>/cucumber.json"`.\n'));
+  // the rm in ANOTHER slug's note does not count
+  assert.ok(hit([cuc], '**cucumber note:** run `npx cucumber-js`.\n\n**other note:** `rm -f "<R>/cucumber.json"`\n'));
+  // directory results need rm -rf of the directory
+  const cy = '| `cypress` | See note below | `cypress` | `<R>/cypress/` (one JSON per spec) |';
+  assert.ok(hit([cy], '**cypress note:** `npx cypress run --reporter mochawesome`\n'));
+  assert.ok(hit([cy], '**cypress note:** `rm -f "<R>/cypress"` then `npx cypress run`\n'), 'rm -f does not remove a directory');
+  assert.ok(!hit([cy], '**cypress note:** `rm -rf "<R>/cypress" && mkdir -p "<R>/cypress"` then `npx cypress run`\n'));
+  // `build.gradle` in prose is not the gradle runner
+  const ju = '| `junit` | See note below | `junit` | `<R>/junit/` |';
+  assert.ok(!hit([ju], '**junit note:** Check for `build.gradle`. First `rm -rf "<R>/junit"`. Then `gradle cleanTest test`.\n'));
+});

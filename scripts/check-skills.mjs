@@ -328,6 +328,58 @@ export function checkRunnerFixtures({ root }) {
   return out;
 }
 
+// Every /qf-run runner must delete its previous result before it runs. The
+// upload step only checks that the result path exists, so a runner that crashes
+// before writing would otherwise upload the last run's report as this commit's.
+// A file result needs `rm -f "<R>/x.ext"`, a directory result `rm -rf "<R>/dir"`,
+// in the row's command cell — or, for "See note below", in `**<slug> note:**` —
+// before the runner itself.
+// A runner invocation starts a command: after a backtick, whitespace or line start
+// (so `build.gradle` in prose is not the `gradle` runner).
+const RUNNER_START = /(?:^|[`\s])(?:npx|pytest|go test|bundle exec|\.\/vendor\/bin\/[\w-]+|mvn|gradle|\.\/gradlew)(?=[\s`])/m;
+
+export function noteSection(text, slug) {
+  const start = text.indexOf(`**${slug} note:**`);
+  if (start < 0) return null;
+  const rest = text.slice(start + 2);
+  const end = rest.search(/\n(?:\*\*|#)/);
+  return text.slice(start, end < 0 ? text.length : start + 2 + end);
+}
+
+export function checkResultRemovedBeforeRun({ root }) {
+  const out = [];
+  const p = join(root, 'skills', 'qf-run', 'SKILL.md');
+  if (!existsSync(p)) return out;
+  const text = readFileSync(p, 'utf8');
+  each(/^\| `([a-z-]+)` \| (.*) \| `([a-z-]+)` \| ([^|]+) \|$/m, text, (m) => {
+    const [, slug, cmdCell, , resultCell] = m;
+    const where = { file: 'skills/qf-run/SKILL.md', line: lineOf(text, m.index) };
+    const rp = /`<R>\/([^`]+)`/.exec(resultCell);
+    if (!rp) return;
+    const isDir = rp[1].endsWith('/');
+    const target = `<R>/${rp[1].replace(/\/$/, '')}`;
+    const need = isDir ? `rm -rf "${target}"` : `rm -f "${target}"`;
+    let body = cmdCell;
+    if (/see note below/i.test(cmdCell)) {
+      body = noteSection(text, slug);
+      if (body === null) {
+        out.push({ check: 'stale-result-upload', ...where, message: `"${slug}" row says "See note below" but there is no **${slug} note:**` });
+        return;
+      }
+    }
+    const at = body.indexOf(need);
+    const run = body.search(RUNNER_START);
+    if (at < 0 || (run >= 0 && run < at)) {
+      out.push({
+        check: 'stale-result-upload',
+        ...where,
+        message: `"${slug}" must run \`${need}\` before its runner, or a runner that writes nothing leaves the previous run's ${isDir ? 'reports' : 'report'} to be uploaded as this one`,
+      });
+    }
+  });
+  return out;
+}
+
 export const CHECKS = [
   checkCommandShadowsSkill,
   checkBareProjectDir,
@@ -340,6 +392,7 @@ export const CHECKS = [
   checkCpGlobOntoFile,
   checkArgumentModes,
   checkRunnerFixtures,
+  checkResultRemovedBeforeRun,
 ];
 
 export function checkPlugin(root) {
