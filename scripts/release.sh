@@ -26,8 +26,11 @@ fi
 echo "==> Validating framework slugs..."
 bash scripts/check-slugs.sh
 
-echo "==> Running hook tests..."
-node --test hooks/stop-hook.test.mjs
+echo "==> Validating manifests..."
+node scripts/validate-manifests.mjs
+
+echo "==> Running tests..."
+node --test hooks/*.test.mjs scripts/*.test.mjs
 
 echo "==> Bumping version in .claude-plugin/plugin.json to $NEW_VERSION..."
 node -e "

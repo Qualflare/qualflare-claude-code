@@ -15,7 +15,7 @@ qualflare-ai/
 │   ├── qf-init/      # First-time setup (detection, test-state.md, hook opt-in)
 │   │   ├── SKILL.md
 │   │   └── references/
-│   │       └── framework-slugs.md   # 23 canonical slugs — keep in sync with Go source
+│   │       └── framework-slugs.md   # 27 canonical slugs — keep in sync with Go source
 │   ├── qf-cover/  # Generate tests for changed source files
 │   ├── qf-run/  # Run tests + qf <identifier> collect
 │   ├── qf-fix/  # Fix failing tests from last run
@@ -36,7 +36,11 @@ qualflare-ai/
 │   ├── stop-hook.mjs        # Node script: reads transcript, suggests /qf-cover
 │   └── stop-hook.test.mjs   # Tests (node --test)
 └── scripts/
-    └── check-slugs.sh       # Verify framework-slugs.md matches Go source
+    ├── check-slugs.sh            # Verify framework-slugs.md matches the CLI's Go source
+    ├── slugs.mjs                 # Slug parity logic (Go source or `qf list-formats` output)
+    ├── validate-manifests.mjs    # plugin.json / marketplace.json checks (name, version sync, semver)
+    ├── release.sh
+    └── *.test.mjs                # node --test
 ```
 
 ## How to update skills or commands
@@ -57,17 +61,26 @@ qualflare-cli/internal/core/domain/models.go
 bash scripts/check-slugs.sh
 ```
 
-This script exits 1 if any slug in the Go source is not reflected in the markdown reference.
+It reads the CLI checkout named by `QF_CLI_DIR`, or the Astrais monorepo sibling
+`qualflare-cli/`, and exits 1 if the first column of the Slug Reference Table (or the
+globs table) differs from the CLI's `AllFrameworks()` in either direction. CI also
+builds the CLI and compares against the real `qf list-formats` output
+(`node scripts/slugs.mjs --list-formats <file>`), and runs weekly so new CLI slugs
+turn it red without a plugin change.
 
 **On every version bump:** the plugin version in `test-state.md` is written dynamically at `/qf-init` time by reading `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — no manual update required.
 
 ## Testing the hook locally
 
 ```bash
-node --test hooks/stop-hook.test.mjs
+node --test hooks/*.test.mjs scripts/*.test.mjs   # or: npm test
+node scripts/validate-manifests.mjs
+claude plugin validate .
 ```
 
-All 23 tests must pass.
+All tests must pass. `validate-manifests.mjs` fails when `plugin.json` and the
+`marketplace.json` entry disagree on name or version, so bump both (`scripts/release.sh`
+does).
 
 ## How to test the plugin locally
 

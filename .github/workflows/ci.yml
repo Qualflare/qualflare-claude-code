@@ -4,6 +4,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # The CLI gains framework slugs without any change to this repo, so a CI that
+  # only runs on plugin changes never notices the drift. Run weekly against
+  # qualflare-cli main as well.
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -14,7 +20,7 @@ jobs:
         with:
           path: qualflare-ai
 
-      # check-slugs.sh expects qualflare-cli as a sibling of qualflare-ai
+      # check-slugs.sh reads the CLI's Go source; QF_CLI_DIR below points at it.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: qualflare/qualflare-cli
@@ -23,49 +29,50 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
-          go-version: "1.23"
+          # Track the CLI's own toolchain instead of a hard-coded version.
+          go-version-file: qualflare-cli/go.mod
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "20"
 
-      - name: Check framework slug sync
+      - name: Validate plugin.json and marketplace.json
         working-directory: qualflare-ai
+        run: node scripts/validate-manifests.mjs
+
+      - name: Claude Code plugin validate
+        working-directory: qualflare-ai
+        # Not --strict yet: the marketplace entry still carries fields Claude Code
+        # ignores (reported as warnings). Errors fail this step.
+        run: npx --yes @anthropic-ai/claude-code@2.1.284 plugin validate .
+
+      - name: Check framework slug sync (Go source)
+        working-directory: qualflare-ai
+        env:
+          QF_CLI_DIR: ${{ github.workspace }}/qualflare-cli
         run: bash scripts/check-slugs.sh
 
-      - name: Run hook tests
+      - name: Run tests
         working-directory: qualflare-ai
-        run: node --test hooks/stop-hook.test.mjs
+        env:
+          QF_CLI_DIR: ${{ github.workspace }}/qualflare-cli
+        run: node --test hooks/*.test.mjs scripts/*.test.mjs
 
       - name: Install qf CLI
         working-directory: qualflare-cli
-        run: |
-          go build -o /usr/local/bin/qf ./cmd/main.go
+        run: go build -o /usr/local/bin/qf ./cmd/main.go
 
       - name: Smoke-test qf CLI
-        working-directory: qualflare-ai
-        run: |
-          qf version
-          qf list-formats
+        run: qf version
 
       - name: Verify slug parity against live CLI
         working-directory: qualflare-ai
+        shell: bash
         run: |
-          # Extract slugs from `qf list-formats` output (strip leading whitespace, skip category lines)
-          cli_slugs=$(qf list-formats | grep -E '^\s+[a-z]' | awk '{print $1}' | sort)
-          # Extract slugs from framework-slugs.md (backtick-quoted entries in the table)
-          doc_slugs=$(grep -oE '`[a-z][a-z0-9]+`' skills/qf-init/references/framework-slugs.md | tr -d '`' | sort -u)
-          missing_in_docs=$(comm -23 <(echo "$cli_slugs") <(echo "$doc_slugs"))
-          missing_in_cli=$(comm -13 <(echo "$cli_slugs") <(echo "$doc_slugs"))
-          fail=0
-          if [[ -n "$missing_in_docs" ]]; then
-            echo "ERROR: CLI slug(s) missing from framework-slugs.md:" >&2
-            echo "$missing_in_docs" | sed 's/^/  - /' >&2
-            fail=1
-          fi
-          if [[ -n "$missing_in_cli" ]]; then
-            echo "WARNING: doc slug(s) not found in qf list-formats (may be renamed):" >&2
-            echo "$missing_in_cli" | sed 's/^/  - /' >&2
-          fi
-          exit $fail
+          set -euo pipefail
+          qf list-formats > "$RUNNER_TEMP/list-formats.txt"
+          cat "$RUNNER_TEMP/list-formats.txt"
+          # Parses the real `  - <slug>` lines; exits non-zero on drift in either
+          # direction, and on an empty parse (a changed output format).
+          node scripts/slugs.mjs --list-formats "$RUNNER_TEMP/list-formats.txt"
