@@ -349,6 +349,23 @@ export function checkMochawesomeFilenameCollision({ files }) {
   return out;
 }
 
+// In a multi-module build every module writes its own target/surefire-reports/
+// (or build/test-results/test/); copying only the root one misses them all and
+// reports a false run failure. Collect with `find . -path '*/target/...'`.
+export function checkSingleModuleJunitCollect({ files }) {
+  const out = [];
+  for (const f of files) {
+    each(/\bcp\s+(?:\.\/)?(?:target\/surefire-reports|build\/test-results\/test)\//, f.text, (m) =>
+      out.push({
+        check: 'single-module-junit-collect',
+        file: f.rel,
+        line: lineOf(f.text, m.index),
+        message: `"${m[0]}" collects only the root module's reports; find them recursively (find . -path '*/target/surefire-reports/TEST-*.xml') and prefix each with its module path`,
+      }));
+  }
+  return out;
+}
+
 // Every /qf-run runner must delete its previous result before it runs. The
 // upload step only checks that the result path exists, so a runner that crashes
 // before writing would otherwise upload the last run's report as this commit's.
@@ -415,6 +432,7 @@ export const CHECKS = [
   checkRunnerFixtures,
   checkResultRemovedBeforeRun,
   checkMochawesomeFilenameCollision,
+  checkSingleModuleJunitCollect,
 ];
 
 export function checkPlugin(root) {

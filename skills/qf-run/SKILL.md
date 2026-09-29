@@ -6,7 +6,7 @@ description: >
   and upload", or explicitly invokes this skill after writing tests. Also
   uploads an existing report file: /qf-run <report-path> [slug].
 argument-hint: "[framework-slug | package/path | report-path [slug]]"
-allowed-tools: Read Glob Bash(qf:*) Bash(mkdir:*) Bash(rm -f:*) Bash(rm -rf:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(PLAYWRIGHT_JSON_OUTPUT_FILE=* npx playwright test *) Bash(cd:*) Bash(cp:*) Bash(git:*)
+allowed-tools: Read Glob Bash(qf:*) Bash(mkdir:*) Bash(rm -f:*) Bash(rm -rf:*) Bash(find:*) Bash(npm:*) Bash(pnpm:*) Bash(yarn:*) Bash(go test:*) Bash(python:*) Bash(pytest:*) Bash(jest:*) Bash(vitest:*) Bash(playwright:*) Bash(cypress:*) Bash(bundle:*) Bash(rspec:*) Bash(phpunit:*) Bash(mvn:*) Bash(gradle:*) Bash(npx:*) Bash(PLAYWRIGHT_JSON_OUTPUT_FILE=* npx playwright test *) Bash(cd:*) Bash(cp:*) Bash(git:*)
 ---
 
 Paths below use `${CLAUDE_PROJECT_DIR}`, which Claude Code replaces with the absolute project root when it loads this skill. The Bash tool does not have a `CLAUDE_PROJECT_DIR` variable, so always run the paths exactly as written here (already expanded), in double quotes.
@@ -94,16 +94,22 @@ npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress
 ```
 Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`. `[name]` is the spec's file name only, so two specs with the same name in different folders (`admin/login.cy.ts`, `shop/login.cy.ts`) would both write `login.json`; `overwrite=false` makes mochawesome add a counter (`login_001.json`) instead of replacing the first report. Keep it.
 
-**junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class, so copy them into a directory — never onto a single file path.
+**junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class — in a multi-module build, one set per module (`<module>/target/surefire-reports/`, `<sub>/build/test-results/test/`). Collect them recursively into a directory, never onto a single file path, and prefix each file with its module path so two modules' `TEST-com.acme.FooTest.xml` do not overwrite each other.
 
 First clear this run's output, both ours and the build tool's, so an earlier run's reports cannot be collected:
 ```bash
 rm -rf "<R>/junit" && mkdir -p "<R>/junit"
 ```
-- Maven: `mvn clean test` (`clean` deletes `target/`, so no stale `surefire-reports` survive), then `cp target/surefire-reports/TEST-*.xml "<R>/junit/"`
-- Gradle: `gradle cleanTest test` (or `./gradlew cleanTest test` when the wrapper exists; `cleanTest` deletes the test results and forces the tests to run even when Gradle considers them up to date), then `cp build/test-results/test/TEST-*.xml "<R>/junit/"`
+- **Maven:** `mvn clean test` (`clean` deletes every module's `target/`, so no stale `surefire-reports` survive), then:
+  ```bash
+  find . -path '*/target/surefire-reports/TEST-*.xml' | while IFS= read -r f; do m="${f%/target/surefire-reports/*}"; m="${m#./}"; [ "$m" = "." ] && m=root; cp "$f" "<R>/junit/${m//\//_}__${f##*/}"; done
+  ```
+- **Gradle:** `gradle cleanTest test` (or `./gradlew cleanTest test` when the wrapper exists; `cleanTest` deletes every project's test results and forces the tests to run even when Gradle considers them up to date), then:
+  ```bash
+  find . -path '*/build/test-results/test/TEST-*.xml' | while IFS= read -r f; do m="${f%/build/test-results/test/*}"; m="${m#./}"; [ "$m" = "." ] && m=root; cp "$f" "<R>/junit/${m//\//_}__${f##*/}"; done
+  ```
 
-If the copy matches no files, the run produced no reports — record it as a run failure for the summary.
+A file from `core/target/surefire-reports/TEST-com.acme.FooTest.xml` lands as `<R>/junit/core__TEST-com.acme.FooTest.xml`; one from the root module as `root__TEST-…`. If `<R>/junit/` is empty afterwards, the run produced no reports — record it as a run failure for the summary.
 
 **cucumber note:** the CLI's Cucumber parser reads Cucumber JSON. First `rm -f "<R>/cucumber.json"`. Then inspect the project to pick the runner:
 - JavaScript (`@cucumber/cucumber` in deps): `npx cucumber-js --format json:"<R>/cucumber.json"`

@@ -133,6 +133,7 @@ test('identifier-scoped validate is flagged, flat validate is not', () => {
 test('copying a glob onto one file is flagged, into a directory is not', () => {
   assert.ok(checksHit(plugin({ 'skills/a/SKILL.md': skill('a', '`cp target/surefire-reports/*.xml $OUT/junit.xml`') })).includes('cp-glob-onto-file'));
   assert.ok(!checksHit(plugin({ 'skills/a/SKILL.md': skill('a', '`cp target/surefire-reports/TEST-*.xml "<R>/junit/"`') })).includes('cp-glob-onto-file'));
+  assert.ok(!checksHit(plugin({ 'skills/a/SKILL.md': skill('a', '`cp build/out/TEST-*.xml "<R>/junit/"`') })).includes('cp-glob-onto-file'));
 });
 
 test('an argument mode the target skill does not declare is flagged', () => {
@@ -252,4 +253,49 @@ test('qf-run does not offer an .xcresult bundle as an uploadable xctest report',
   assert.doesNotMatch(row, /\bor an `\.xcresult` bundle/);
   assert.match(row, /JUnit XML/);
   assert.match(row, /\*\*Not\*\* an `\.xcresult` bundle/);
+});
+
+test('copying only the root module\'s JUnit reports is flagged', () => {
+  const hit = (body) => checksHit(plugin({ 'skills/a/SKILL.md': skill('a', body) })).includes('single-module-junit-collect');
+  assert.ok(hit('`mvn test`, then `cp target/surefire-reports/TEST-*.xml "<R>/junit/"`'));
+  assert.ok(hit('then `cp ./build/test-results/test/TEST-*.xml "<R>/junit/"`'));
+  assert.ok(!hit('find . -path \'*/target/surefire-reports/TEST-*.xml\' | while IFS= read -r f; do cp "$f" "<R>/junit/x"; done'));
+});
+
+// Runs the exact collection loops from /qf-run's junit note against a
+// multi-module tree: every module's report is collected, and two modules'
+// same-named TEST-*.xml land under distinct names.
+test('qf-run junit collection loops collect every module without collisions', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const { spawnSync } = await import('node:child_process');
+  const text = readFileSync(join(REPO, 'skills/qf-run/SKILL.md'), 'utf8');
+  const note = text.slice(text.indexOf('**junit note:**'), text.indexOf('**cucumber note:**'));
+  const loops = [...note.matchAll(/^\s*(find \. -path .*done)$/gm)].map((m) => m[1]);
+  assert.equal(loops.length, 2, 'one Maven and one Gradle loop');
+  const root = mkdtempSync(join(tmpdir(), 'qf-junit-'));
+  try {
+    const put = (rel) => { mkdirSync(dirname(join(root, rel)), { recursive: true }); writeFileSync(join(root, rel), '<testsuite/>'); };
+    for (const d of ['target/surefire-reports', 'core/target/surefire-reports', 'svc/api/target/surefire-reports']) put(`${d}/TEST-com.acme.FooTest.xml`);
+    put('core/target/surefire-reports/com.acme.FooTest.txt');
+    for (const d of ['build/test-results/test', 'app/build/test-results/test']) put(`${d}/TEST-com.acme.BarTest.xml`);
+    for (const shell of ['bash', 'zsh']) {
+      if (spawnSync(shell, ['-c', 'true']).status !== 0) continue;
+      const R = join(root, `R-${shell}`);
+      const out = join(R, 'junit');
+      mkdirSync(out, { recursive: true });
+      for (const loop of loops) {
+        const r = spawnSync(shell, ['-c', loop.replaceAll('<R>', R)], { cwd: root, encoding: 'utf8' });
+        assert.equal(r.status, 0, r.stderr);
+      }
+      assert.deepEqual(readdirSync(out).sort(), [
+        'app__TEST-com.acme.BarTest.xml',
+        'core__TEST-com.acme.FooTest.xml',
+        'root__TEST-com.acme.BarTest.xml',
+        'root__TEST-com.acme.FooTest.xml',
+        'svc_api__TEST-com.acme.FooTest.xml',
+      ], shell);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
