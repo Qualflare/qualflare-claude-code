@@ -72,3 +72,7 @@ test('invalid JSON on disk is reported, not thrown', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a frameworks list in the marketplace entry fails (unread by Claude Code, drifts silently)', () => {
+  assert.match(errs(plugin(), market({ frameworks: ['jest'] })), /"frameworks" is not read by Claude Code/);
+});

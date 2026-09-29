@@ -68,6 +68,10 @@ export function validateManifests(plugin, marketplace) {
     else seen.add(entry.name);
     if (!(isStr(entry.source) || isObj(entry.source))) errors.push(`${at}: "source" is required`);
     else if (isStr(entry.source) && entry.source.split('/').includes('..')) errors.push(`${at}: "source" must not contain ".."`);
+    // A hand-kept slug list nothing reads: Claude Code ignores the field ("Unknown
+    // field 'frameworks'"), and it had drifted to 23 of the CLI's 27 slugs with no
+    // check on it. The one list is skills/qf-init/references/framework-slugs.md.
+    if (entry.frameworks !== undefined) errors.push(`${at}: "frameworks" is not read by Claude Code and drifts from framework-slugs.md — remove it`);
   });
 
   // The entry that points at this repository's root IS the plugin in plugin.json.
