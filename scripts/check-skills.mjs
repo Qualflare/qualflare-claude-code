@@ -328,6 +328,27 @@ export function checkRunnerFixtures({ root }) {
   return out;
 }
 
+// mochawesome's `[name]` is the spec's file name only, so two specs with the same
+// name in different folders write the same report and the second replaces the
+// first. `overwrite=false` makes mochawesome append a counter (`login_001.json`).
+export function checkMochawesomeFilenameCollision({ files }) {
+  const out = [];
+  for (const f of files) {
+    each(/--reporter-options\s+"([^"\n]*)"/, f.text, (m) => {
+      const opts = m[1];
+      if (!/reportFilename=[^,]*\[name\]/.test(opts)) return;
+      if (/\boverwrite=false\b/.test(opts)) return;
+      out.push({
+        check: 'mochawesome-filename-collision',
+        file: f.rel,
+        line: lineOf(f.text, m.index),
+        message: 'reportFilename=[name] without overwrite=false: specs with the same file name overwrite each other\'s reports',
+      });
+    });
+  }
+  return out;
+}
+
 // Every /qf-run runner must delete its previous result before it runs. The
 // upload step only checks that the result path exists, so a runner that crashes
 // before writing would otherwise upload the last run's report as this commit's.
@@ -393,6 +414,7 @@ export const CHECKS = [
   checkArgumentModes,
   checkRunnerFixtures,
   checkResultRemovedBeforeRun,
+  checkMochawesomeFilenameCollision,
 ];
 
 export function checkPlugin(root) {

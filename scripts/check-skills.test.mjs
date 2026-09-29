@@ -218,3 +218,26 @@ test('qf-run treats an exact slug as a slug filter before any path matching', as
   assert.match(rules, /existing \*\*directory\*\* \*and\* a second token that is a slug/);
   assert.match(rules, /enter report-upload mode only if the user confirms/);
 });
+
+test('mochawesome reportFilename=[name] without overwrite=false is flagged', () => {
+  const cmd = (o) => `npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress,${o},html=false,json=true"`;
+  const hit = (body) => checksHit(plugin({ 'skills/a/SKILL.md': skill('a', body) })).includes('mochawesome-filename-collision');
+  assert.ok(hit(cmd('reportFilename=[name]')));
+  assert.ok(hit(cmd('reportFilename=[name],overwrite=true')));
+  assert.ok(!hit(cmd('reportFilename=[name],overwrite=false')));
+  assert.ok(!hit(cmd('reportFilename=mochawesome')), 'a fixed name is a different defect, not this one');
+});
+
+test('the cypress fixture holds two same-named specs kept apart by overwrite=false', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = join(REPO, 'tests/fixtures/reports/cypress');
+  const names = readdirSync(dir).sort();
+  assert.deepEqual(names, ['login.json', 'login_001.json']);
+  const specs = names.map((n) => JSON.parse(readFileSync(join(dir, n), 'utf8')).results[0].fullFile);
+  assert.equal(new Set(specs).size, 2, 'the two reports come from different specs');
+  for (const n of names) {
+    const marge = JSON.parse(readFileSync(join(dir, n), 'utf8')).meta.marge.options;
+    assert.equal(marge.reportFilename, '[name]');
+    assert.equal(String(marge.overwrite), 'false');
+  }
+});

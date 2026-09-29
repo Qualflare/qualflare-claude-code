@@ -90,9 +90,9 @@ Every command writes the format the CLI parser for that upload slug reads (`qf v
 **cypress note:** the CLI's Cypress parser reads Mochawesome JSON. Check whether `mochawesome` is in the `cwd` package's `devDependencies`/`dependencies`. If it is not, tell the user: "Cypress results upload as Mochawesome JSON. Add it with `npm install --save-dev mochawesome` (or your package manager's equivalent), then re-run `/qf-run`." and skip this item. If it is:
 ```bash
 rm -rf "<R>/cypress" && mkdir -p "<R>/cypress"
-npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress,reportFilename=[name],html=false,json=true,quiet=true"
+npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress,reportFilename=[name],overwrite=false,html=false,json=true,quiet=true"
 ```
-Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`.
+Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`. `[name]` is the spec's file name only, so two specs with the same name in different folders (`admin/login.cy.ts`, `shop/login.cy.ts`) would both write `login.json`; `overwrite=false` makes mochawesome add a counter (`login_001.json`) instead of replacing the first report. Keep it.
 
 **junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class, so copy them into a directory — never onto a single file path.
 

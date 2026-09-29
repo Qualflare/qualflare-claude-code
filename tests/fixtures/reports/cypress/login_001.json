@@ -1,0 +1,127 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 2,
+    "passes": 1,
+    "pending": 1,
+    "failures": 0,
+    "start": "2026-09-29T14:37:34.910Z",
+    "end": "2026-09-29T14:37:34.912Z",
+    "duration": 2,
+    "testsRegistered": 2,
+    "passPercent": 100,
+    "pendingPercent": 50,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "0bd8129b-533f-41c0-b276-54fc502fb0a2",
+      "title": "",
+      "fullFile": "/project/cypress/e2e/shop/login.cy.js",
+      "file": "/cypress/e2e/shop/login.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "6b9df4e4-fc34-4138-92d3-739bee36a3d1",
+          "title": "shop login",
+          "fullFile": "/project/cypress/e2e/shop/login.cy.js",
+          "file": "/cypress/e2e/shop/login.cy.js",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "shows the cart after login",
+              "fullTitle": "shop login shows the cart after login",
+              "timedOut": false,
+              "duration": 0,
+              "state": "passed",
+              "speed": "fast",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "assert.ok(true);",
+              "err": {},
+              "uuid": "0e22727c-f8ca-4bee-8b6b-0c264e25be76",
+              "parentUUID": "6b9df4e4-fc34-4138-92d3-739bee36a3d1",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "remembers the basket",
+              "fullTitle": "shop login remembers the basket",
+              "timedOut": false,
+              "duration": 0,
+              "state": "pending",
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": true,
+              "context": null,
+              "code": "",
+              "err": {},
+              "uuid": "0f3f26c5-2b60-45f2-98a6-5bd31cc8aac8",
+              "parentUUID": "6b9df4e4-fc34-4138-92d3-739bee36a3d1",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "0e22727c-f8ca-4bee-8b6b-0c264e25be76"
+          ],
+          "failures": [],
+          "pending": [
+            "0f3f26c5-2b60-45f2-98a6-5bd31cc8aac8"
+          ],
+          "skipped": [],
+          "duration": 0,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "12.0.2"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": true,
+        "reportFilename": "[name]",
+        "saveHtml": false,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "8.1.1"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "/project/out/cypress",
+        "reportFilename": "[name]",
+        "overwrite": "false",
+        "html": "false",
+        "json": "true",
+        "quiet": "true"
+      },
+      "version": "6.3.2"
+    }
+  }
+}

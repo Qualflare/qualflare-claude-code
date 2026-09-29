@@ -1,16 +1,16 @@
 {
   "stats": {
     "suites": 1,
-    "tests": 3,
+    "tests": 2,
     "passes": 1,
-    "pending": 1,
+    "pending": 0,
     "failures": 1,
-    "start": "2026-09-29T14:09:52.018Z",
-    "end": "2026-09-29T14:09:52.022Z",
+    "start": "2026-09-29T14:37:34.779Z",
+    "end": "2026-09-29T14:37:34.783Z",
     "duration": 4,
-    "testsRegistered": 3,
+    "testsRegistered": 2,
     "passPercent": 50,
-    "pendingPercent": 33.33333333333333,
+    "pendingPercent": 0,
     "other": 0,
     "hasOther": false,
     "skipped": 0,
@@ -18,25 +18,25 @@
   },
   "results": [
     {
-      "uuid": "96bcd5fd-a19e-4bd1-8559-324fa7a2de6f",
+      "uuid": "0dc4c90d-c499-4e2a-abe4-37111ef2418c",
       "title": "",
-      "fullFile": "/project/test/a.spec.js",
-      "file": "/test/a.spec.js",
+      "fullFile": "/project/cypress/e2e/admin/login.cy.js",
+      "file": "/cypress/e2e/admin/login.cy.js",
       "beforeHooks": [],
       "afterHooks": [],
       "tests": [],
       "suites": [
         {
-          "uuid": "19084fc7-ee2f-4fb8-b31d-4ee4f35a5efe",
-          "title": "math",
-          "fullFile": "/project/test/a.spec.js",
-          "file": "/test/a.spec.js",
+          "uuid": "559a327a-31f1-496a-ae2c-93478770ffea",
+          "title": "admin login",
+          "fullFile": "/project/cypress/e2e/admin/login.cy.js",
+          "file": "/cypress/e2e/admin/login.cy.js",
           "beforeHooks": [],
           "afterHooks": [],
           "tests": [
             {
-              "title": "adds",
-              "fullTitle": "math adds",
+              "title": "accepts a valid password",
+              "fullTitle": "admin login accepts a valid password",
               "timedOut": false,
               "duration": 0,
               "state": "passed",
@@ -45,66 +45,46 @@
               "fail": false,
               "pending": false,
               "context": null,
-              "code": "console.log('noise'); assert.equal(1+1,2)",
+              "code": "assert.equal(1 + 1, 2);",
               "err": {},
-              "uuid": "03efeac0-7792-455c-89a1-43419d10476e",
-              "parentUUID": "19084fc7-ee2f-4fb8-b31d-4ee4f35a5efe",
+              "uuid": "2feab744-5b3f-49ab-b02d-7c6d4166af44",
+              "parentUUID": "559a327a-31f1-496a-ae2c-93478770ffea",
               "isHook": false,
               "skipped": false
             },
             {
-              "title": "fails",
-              "fullTitle": "math fails",
+              "title": "rejects a wrong password",
+              "fullTitle": "admin login rejects a wrong password",
               "timedOut": false,
-              "duration": 1,
+              "duration": 0,
               "state": "failed",
               "speed": null,
               "pass": false,
               "fail": true,
               "pending": false,
               "context": null,
-              "code": "assert.equal(1,2)",
+              "code": "assert.equal(1, 2);",
               "err": {
                 "message": "AssertionError: 1 == 2",
-                "estack": "AssertionError [ERR_ASSERTION]: 1 == 2\n    at Context.<anonymous> (test/a.spec.js:2:105)\n    at process.processImmediate (node:internal/timers:504:21)",
+                "estack": "AssertionError [ERR_ASSERTION]: 1 == 2\n    at Context.<anonymous> (cypress/e2e/admin/login.cy.js:4:49)\n    at process.processImmediate (node:internal/timers:504:21)",
                 "diff": "- 1\n+ 2\n"
               },
-              "uuid": "affdd232-1c4f-44fe-a1b8-ccc1f34a1aa7",
-              "parentUUID": "19084fc7-ee2f-4fb8-b31d-4ee4f35a5efe",
-              "isHook": false,
-              "skipped": false
-            },
-            {
-              "title": "skipped",
-              "fullTitle": "math skipped",
-              "timedOut": false,
-              "duration": 0,
-              "state": "pending",
-              "speed": null,
-              "pass": false,
-              "fail": false,
-              "pending": true,
-              "context": null,
-              "code": "",
-              "err": {},
-              "uuid": "de18ae4c-8923-486b-9d37-8869bad348da",
-              "parentUUID": "19084fc7-ee2f-4fb8-b31d-4ee4f35a5efe",
+              "uuid": "10eaa320-0a31-4cfe-b04d-8f1cf4c42176",
+              "parentUUID": "559a327a-31f1-496a-ae2c-93478770ffea",
               "isHook": false,
               "skipped": false
             }
           ],
           "suites": [],
           "passes": [
-            "03efeac0-7792-455c-89a1-43419d10476e"
+            "2feab744-5b3f-49ab-b02d-7c6d4166af44"
           ],
           "failures": [
-            "affdd232-1c4f-44fe-a1b8-ccc1f34a1aa7"
+            "10eaa320-0a31-4cfe-b04d-8f1cf4c42176"
           ],
-          "pending": [
-            "de18ae4c-8923-486b-9d37-8869bad348da"
-          ],
+          "pending": [],
           "skipped": [],
-          "duration": 1,
+          "duration": 0,
           "root": false,
           "rootEmpty": false,
           "_timeout": 2000
@@ -140,6 +120,7 @@
       "options": {
         "reportDir": "/project/out/cypress",
         "reportFilename": "[name]",
+        "overwrite": "false",
         "html": "false",
         "json": "true",
         "quiet": "true"
