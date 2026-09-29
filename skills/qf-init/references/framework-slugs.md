@@ -47,11 +47,13 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 
 Use these globs when scanning a project to confirm framework presence or locate test files.
 
+Every cell in the second column is either a comma-separated list of backticked globs, passed to the Glob tool as-is, or exactly `*(skip counting)*`. **`*(skip counting)*` means the slug has no test-file glob** (`qualflare-json` reports live wherever the reporter's `outputDir` says; Selenium has no standard layout): do not Glob for it — /qf-init records its File count as `—`, and /qf-update, /qf-doctor and /qf-state leave that count alone. `scripts/slugs.mjs` fails on any other cell shape.
+
 | Slug | Glob patterns |
 |------|---------------|
 | `junit` | `**/pom.xml`, `**/build.gradle` |
 | `ctrf` | `**/ctrf/**/*.json`, `**/ctrf-report.json` |
-| `qualflare-json` | *(the Qualflare reporter's configured `outputDir`)* |
+| `qualflare-json` | *(skip counting)* |
 | `python` | `tests/**/test_*.py`, `tests/**/*_test.py`, `**/test_*.py` |
 | `golang` | `**/*_test.go` |
 | `jest` | `**/*.test.{js,jsx,ts,tsx}`, `**/__tests__/**/*.{js,ts}`, `**/*.spec.{js,jsx,ts,tsx}` |
@@ -61,10 +63,10 @@ Use these globs when scanning a project to confirm framework presence or locate 
 | `phpunit` | `tests/**/*Test.php` |
 | `testng` | `**/testng.xml`, `**/testng-results.xml`, `src/test/**/*.java`, `src/test/**/*.kt` |
 | `cucumber` | `**/*.feature` |
-| `karate` | `**/*.feature` (co-located with `src/test/`) |
+| `karate` | `**/src/test/**/*.feature` |
 | `playwright` | `e2e/**/*.spec.{ts,js}`, `playwright/**/*.spec.{ts,js}`, `**/playwright.config.*` |
 | `cypress` | `cypress/e2e/**/*.cy.{ts,js}`, `**/cypress.config.*` |
-| `selenium` | *(varies by language)* |
+| `selenium` | *(skip counting)* |
 | `testcafe` | `tests/**/*.testcafe.{js,ts}` |
 | `maestro` | `**/.maestro/**/*.yaml`, `**/.maestro/**/*.yml` |
 | `xctest` | `**/*UITests/**/*.swift`, `**/*Tests/**/*.swift`, `**/*UITests/**/*.m`, `**/*Tests/**/*.m` |

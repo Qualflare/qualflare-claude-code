@@ -33,7 +33,7 @@ From `test-state.md`, extract:
 
 ## Step 2 — Display state
 
-For each framework row in `## Frameworks in use`, use `Glob` to re-count test files live. Use the glob patterns from the framework-slugs reference (stored at `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`). Scope each Glob to the package's top-level paths from the `Top-level paths` column. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
+For each framework row in `## Frameworks in use` whose glob cell is not `*(skip counting)*` (those have no test-file glob — show the stored count), use `Glob` to re-count test files live. Use the glob patterns from the framework-slugs reference (stored at `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`). Scope each Glob to the package's top-level paths from the `Top-level paths` column. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
 
 **Single-package format** (package list has exactly one entry, i.e., `(root)`):
 

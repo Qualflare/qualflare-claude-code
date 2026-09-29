@@ -133,7 +133,7 @@ Read the current plugin version from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugi
 
 Parse the `## Packages` table and `## Frameworks in use` table from `test-state.md`. Build the same per-package work queue as `/qf-run` Step 1.
 
-For each (package, slug) row, use the Glob tool to re-count live test files using the patterns from `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Scope each Glob to the package's `Top-level paths` column. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
+Skip any slug whose glob cell is `*(skip counting)*` (no test-file glob). For each other (package, slug) row, use the Glob tool to re-count live test files using the patterns from `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Scope each Glob to the package's `Top-level paths` column. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
 
 Compare `liveCount` against `storedCount` (from the `File count` column):
 

@@ -43,7 +43,7 @@ Stop here.
 
 ## Step 2 — Re-glob live file counts
 
-Read the glob patterns from `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Locate the "Test-File Globs Per Slug" table and extract the patterns for each slug in the queue.
+Read the glob patterns from `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Locate the "Test-File Globs Per Slug" table and extract the patterns for each slug in the queue. Drop from the queue any slug whose cell is `*(skip counting)*` — it has no test-file glob, and its stored count is left as is.
 
 For each item in the queue, run Glob using each of that slug's patterns, scoped to the `Top-level paths` from the row. Exclude results under `node_modules/`, `vendor/`, `dist/`, `build/`, `.next/`, `.git/`, `__pycache__/`.
 

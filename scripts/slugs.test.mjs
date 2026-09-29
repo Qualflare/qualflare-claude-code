@@ -153,3 +153,37 @@ test('the qf-init subagent is told to record Vitest as jest, in its brief and on
   assert.ok(row, 'framework-slugs.md has a `vitest` row');
   assert.match(row, /Detect as `jest`/);
 });
+
+// /qf-update and /qf-init pass the glob cell straight to Glob; prose there is
+// globbed literally and counts nothing.
+test('globCellError accepts backticked globs and the skip marker, rejects prose', async () => {
+  const { globCellError, SKIP_COUNTING } = await import('./slugs.mjs');
+  assert.equal(globCellError('`**/*_test.go`'), null);
+  assert.equal(globCellError('`tests/**/test_*.py`, `**/*_test.py`'), null);
+  assert.equal(globCellError(SKIP_COUNTING), null);
+  assert.ok(globCellError("*(the Qualflare reporter's configured `outputDir`)*"));
+  assert.ok(globCellError('*(varies by language)*'));
+  assert.ok(globCellError('`**/*.feature` (co-located with `src/test/`)'));
+  assert.ok(globCellError('`a b`'));
+  assert.ok(globCellError(''));
+});
+
+test('a prose glob cell fails the docs check', () => {
+  const docs = DOCS(['jest', 'qualflare-json']).replace("| `qualflare-json` | `**/*` |", "| `qualflare-json` | *(the reporter's `outputDir`)* |");
+  const r = runWith({ lf: '  - jest\n  - qualflare-json\n', docs }, ['--list-formats', 'lf', '--docs', 'docs']);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /Test-File Globs Per Slug: `qualflare-json`: .* neither a comma-separated list of backticked globs/);
+});
+
+test('the skip-counting marker passes the docs check', () => {
+  const docs = DOCS(['jest', 'qualflare-json']).replace("| `qualflare-json` | `**/*` |", '| `qualflare-json` | *(skip counting)* |');
+  const r = runWith({ lf: '  - jest\n  - qualflare-json\n', docs }, ['--list-formats', 'lf', '--docs', 'docs']);
+  assert.equal(r.code, 0, r.err);
+});
+
+test('every skill that globs by the slug table skips the skip-counting marker', () => {
+  for (const s of ['qf-init', 'qf-update', 'qf-doctor', 'qf-state']) {
+    const md = readFileSync(path.join(here, '..', 'skills', s, 'SKILL.md'), 'utf8');
+    assert.ok(md.includes('*(skip counting)*'), `${s}/SKILL.md must say to skip counting for *(skip counting)* slugs`);
+  }
+});

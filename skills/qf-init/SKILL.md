@@ -86,7 +86,7 @@ Use this brief verbatim for each subagent — substitute `<PACKAGE_DIR>` and `${
 >
 > **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list. **Exception — Vitest:** report a Vitest package under `jest`, never `vitest` (the reference lists `vitest` only because the CLI accepts it; /qf-run, /qf-fix and /qf-doctor handle Vitest through the `jest` row).
 >
-> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count. Report: slug, estimated test count, top-level test directories (paths relative to `$CLAUDE_PROJECT_DIR`, not `<PACKAGE_DIR>`).
+> **Glob test files:** For each detected framework, use the `Glob` tool with the glob patterns from the reference file to estimate the test file count; for a slug whose glob cell is `*(skip counting)*`, do not Glob — report its count as `—`. Report: slug, estimated test count, top-level test directories (paths relative to `$CLAUDE_PROJECT_DIR`, not `<PACKAGE_DIR>`).
 >
 > **Suggestions:** If you see strong indicators for a framework the project doesn't currently use (e.g., React SPA with no E2E framework), note it as a suggestion.
 >

@@ -76,6 +76,12 @@ export function parseGoSource(src) {
 
 /** Rows of the markdown table under the given `## heading`, first column only. */
 function tableFirstColumn(md, heading) {
+  const rows = tableRows(md, heading);
+  return rows === null ? null : rows.map((r) => r[0]);
+}
+
+/** Rows of the markdown table under the given `## heading`, as trimmed cells (header and rule skipped). */
+function tableRows(md, heading) {
   const lines = md.split(/\r?\n/);
   const start = lines.findIndex((l) => l.trim() === `## ${heading}`);
   if (start < 0) return null;
@@ -89,9 +95,10 @@ function tableFirstColumn(md, heading) {
       continue;
     }
     inTable = true;
-    const cell = l.split('|')[1].trim();
+    const cells = l.split('|').slice(1, -1).map((c) => c.trim());
+    const cell = cells[0] ?? '';
     if (/^-+$/.test(cell.replace(/:/g, '')) || cell === 'Slug') continue;
-    out.push(cell);
+    out.push(cells);
   }
   return out;
 }
@@ -110,7 +117,12 @@ export function parseSlugsMarkdown(md) {
     return m ? m[1] : null;
   };
   const refCells = tableFirstColumn(md, 'Slug Reference Table');
-  const globCells = tableFirstColumn(md, 'Test-File Globs Per Slug');
+  const globRows = tableRows(md, 'Test-File Globs Per Slug');
+  const globCells = globRows === null ? null : globRows.map((r) => r[0]);
+  for (const r of globRows ?? []) {
+    const e = globCellError(r[1] ?? '');
+    if (e) errors.push(`Test-File Globs Per Slug: ${r[0]}: ${e}`);
+  }
   if (refCells === null) errors.push('missing "## Slug Reference Table" section');
   if (globCells === null) errors.push('missing "## Test-File Globs Per Slug" section');
   const slugs = (refCells ?? []).map((c) => cellToSlug(c, 'Slug Reference Table')).filter(Boolean);
@@ -128,6 +140,27 @@ export function parseSlugsMarkdown(md) {
     for (const s of globSlugs) if (!slugs.includes(s)) errors.push(`\`${s}\` has a glob row but is not in the Slug Reference Table`);
   }
   return { slugs, errors };
+}
+
+/**
+ * The marker a glob cell carries when the slug has no test-file glob. /qf-init,
+ * /qf-update, /qf-doctor and /qf-state skip counting for it instead of passing
+ * the cell to the Glob tool.
+ */
+export const SKIP_COUNTING = '*(skip counting)*';
+
+/**
+ * A glob cell must be either SKIP_COUNTING or a comma-separated list of
+ * backticked globs with no whitespace inside — /qf-update and /qf-init hand
+ * each one straight to Glob, so prose ("the reporter's outputDir", "varies by
+ * language") or a trailing parenthetical would be globbed literally.
+ * Returns an error string, or null when the cell is valid.
+ */
+export function globCellError(cell) {
+  if (cell === SKIP_COUNTING) return null;
+  // Commas also appear inside brace sets (`*.{js,ts}`), so match the whole cell.
+  if (/^`[^`\s]+`(?:,\s*`[^`\s]+`)*$/.test(cell)) return null;
+  return `"${cell}" is neither a comma-separated list of backticked globs nor exactly ${SKIP_COUNTING}`;
 }
 
 /** Set difference both ways. */
