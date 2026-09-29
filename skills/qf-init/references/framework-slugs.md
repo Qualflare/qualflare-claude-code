@@ -19,7 +19,7 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 | `python` | Unit | `pytest.ini`, `pyproject.toml` (`[tool.pytest...]`), `setup.cfg` (`[tool:pytest]`), `conftest.py`, `requirements*.txt` containing `pytest` | The slug for pytest results |
 | `golang` | Unit | `*_test.go` files, `go.mod` present | The slug for go test results (`go test -json`) |
 | `jest` | Unit | `jest.config.*`, `"jest"` key in `package.json`, `@jest/` deps | /qf-init also records Vitest packages under `jest` (see `vitest`) |
-| `vitest` | Unit | `vitest.config.*`, `vitest` in deps/devDeps, a `test:` block in `vite.config.*` | Accepted by the CLI; the same parser as `jest` reads it, and the launch is labelled `jest` either way. /qf-init records Vitest packages under the `jest` slug, whose /qf-run row already runs Vitest when it is a dependency; use `--format vitest` only for a manual `qf <identifier> collect`. |
+| `vitest` | Unit | `vitest.config.*`, `vitest` in deps/devDeps, a `test:` block in `vite.config.*` | **Detect as `jest` — do not record `vitest` in test-state.md.** Accepted by the CLI; the same parser as `jest` reads it, and the launch is labelled `jest` either way. /qf-init records Vitest packages under the `jest` slug, whose /qf-run row already runs Vitest when it is a dependency; use `--format vitest` only for a manual `qf <identifier> collect`. |
 | `mocha` | Unit | `mocha` in `package.json` deps/devDeps, `.mocharc.*`, `test/` dir with JS files | |
 | `rspec` | Unit | `Gemfile` containing `rspec`, `.rspec`, `spec/` directory | |
 | `phpunit` | Unit | `phpunit.xml` / `phpunit.xml.dist`, `composer.json` containing `phpunit/phpunit`, `tests/` dir with `*Test.php` | |

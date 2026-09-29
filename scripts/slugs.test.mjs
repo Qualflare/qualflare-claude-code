@@ -140,3 +140,16 @@ test('check-slugs.sh passes against the real CLI source', { skip: !(goFile && ex
   const r = spawnSync('bash', [path.join(here, 'check-slugs.sh')], { encoding: 'utf8', env: process.env });
   assert.equal(r.status, 0, r.stderr);
 });
+
+// /qf-run, /qf-fix and /qf-doctor have no `vitest` row: Vitest must be recorded as
+// `jest`. The qf-init subagent is told to use ONLY slugs from framework-slugs.md, so
+// the rule has to be where the subagent reads — its brief and the vitest row — not
+// only in the orchestrator's edge-case list.
+test('the qf-init subagent is told to record Vitest as jest, in its brief and on the vitest row', () => {
+  const skill = readFileSync(path.join(here, '..', 'skills', 'qf-init', 'SKILL.md'), 'utf8');
+  const brief = skill.split('\n').filter((l) => l.startsWith('>')).join('\n');
+  assert.match(brief, /Use ONLY slugs from that list[^\n]*Vitest[^\n]*under `jest`, never `vitest`/);
+  const row = readFileSync(REAL_DOCS, 'utf8').split('\n').find((l) => l.startsWith('| `vitest` |'));
+  assert.ok(row, 'framework-slugs.md has a `vitest` row');
+  assert.match(row, /Detect as `jest`/);
+});
