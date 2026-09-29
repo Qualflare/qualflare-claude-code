@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.015" timestamp="2026-09-29T17:15:28.441297+03:00" hostname="ci-host"><testcase classname="pyt.test_x" name="test_a" time="0.000" /><testcase classname="pyt.test_x" name="test_b" time="0.000"><failure message="assert 0">def test_b():
+&gt;       assert 0
+E       assert 0
+
+pyt/test_x.py:4: AssertionError</failure></testcase></testsuite></testsuites>

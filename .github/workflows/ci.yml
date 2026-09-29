@@ -59,12 +59,26 @@ jobs:
           QF_CLI_DIR: ${{ github.workspace }}/qualflare-cli
         run: node --test hooks/*.test.mjs scripts/*.test.mjs
 
+      # Static checks on the skill/command markdown (name shadowing, secrets in
+      # chat or argv, runner output formats, unsupported flags, ...).
+      - name: Check skills
+        working-directory: qualflare-ai
+        run: |
+          node scripts/check-skills.mjs
+          node --test scripts/check-skills.test.mjs
+
       - name: Install qf CLI
         working-directory: qualflare-cli
         run: go build -o /usr/local/bin/qf ./cmd/main.go
 
       - name: Smoke-test qf CLI
         run: qf version
+
+      # Every /qf-run runner row has a fixture in its parser's format
+      # (enforced by check-skills); this proves the CLI parses each one.
+      - name: Validate report fixtures with the CLI parsers
+        working-directory: qualflare-ai
+        run: bash scripts/check-report-fixtures.sh
 
       - name: Verify slug parity against live CLI
         working-directory: qualflare-ai

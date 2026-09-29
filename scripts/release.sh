@@ -29,6 +29,9 @@ bash scripts/check-slugs.sh
 echo "==> Validating manifests..."
 node scripts/validate-manifests.mjs
 
+echo "==> Checking skills..."
+node scripts/check-skills.mjs
+
 echo "==> Running tests..."
 node --test hooks/*.test.mjs scripts/*.test.mjs
 

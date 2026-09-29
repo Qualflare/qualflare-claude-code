@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="tests" tests="2" assertions="2" errors="0" failures="1" skipped="0" time="0.004">
+    <testsuite name="Tests\MathTest" file="/project/tests/MathTest.php" tests="2" assertions="2" errors="0" failures="1" skipped="0" time="0.004">
+      <testcase name="testAdds" file="/project/tests/MathTest.php" line="8" class="Tests\MathTest" classname="Tests.MathTest" assertions="1" time="0.001"/>
+      <testcase name="testFails" file="/project/tests/MathTest.php" line="13" class="Tests\MathTest" classname="Tests.MathTest" assertions="1" time="0.002">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\MathTest::testFails
+Failed asserting that 1 matches expected 2.
+
+/project/tests/MathTest.php:15</failure>
+      </testcase>
+    </testsuite>
+  </testsuite>
+</testsuites>

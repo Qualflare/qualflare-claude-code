@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test hooks/*.test.mjs scripts/*.test.mjs",
     "validate-manifests": "node scripts/validate-manifests.mjs",
+    "check-skills": "node scripts/check-skills.mjs",
     "check-slugs": "bash scripts/check-slugs.sh"
   },
   "devDependencies": {}

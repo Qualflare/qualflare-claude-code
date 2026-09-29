@@ -1,0 +1,13 @@
+{"Time":"2026-09-29T17:15:23.703107+03:00","Action":"start","Package":"example.com/demo"}
+{"Time":"2026-09-29T17:15:24.042724+03:00","Action":"run","Package":"example.com/demo","Test":"TestPass"}
+{"Time":"2026-09-29T17:15:24.042922+03:00","Action":"output","Package":"example.com/demo","Test":"TestPass","Output":"=== RUN   TestPass\n"}
+{"Time":"2026-09-29T17:15:24.042983+03:00","Action":"output","Package":"example.com/demo","Test":"TestPass","Output":"--- PASS: TestPass (0.00s)\n"}
+{"Time":"2026-09-29T17:15:24.043005+03:00","Action":"pass","Package":"example.com/demo","Test":"TestPass","Elapsed":0}
+{"Time":"2026-09-29T17:15:24.043018+03:00","Action":"run","Package":"example.com/demo","Test":"TestFail"}
+{"Time":"2026-09-29T17:15:24.043029+03:00","Action":"output","Package":"example.com/demo","Test":"TestFail","Output":"=== RUN   TestFail\n"}
+{"Time":"2026-09-29T17:15:24.04304+03:00","Action":"output","Package":"example.com/demo","Test":"TestFail","Output":"    a_test.go:4: boom\n"}
+{"Time":"2026-09-29T17:15:24.043051+03:00","Action":"output","Package":"example.com/demo","Test":"TestFail","Output":"--- FAIL: TestFail (0.00s)\n"}
+{"Time":"2026-09-29T17:15:24.043064+03:00","Action":"fail","Package":"example.com/demo","Test":"TestFail","Elapsed":0}
+{"Time":"2026-09-29T17:15:24.043075+03:00","Action":"output","Package":"example.com/demo","Output":"FAIL\n"}
+{"Time":"2026-09-29T17:15:24.044091+03:00","Action":"output","Package":"example.com/demo","Output":"FAIL\texample.com/demo\t0.340s\n"}
+{"Time":"2026-09-29T17:15:24.044162+03:00","Action":"fail","Package":"example.com/demo","Elapsed":0.341}
