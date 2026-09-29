@@ -299,3 +299,84 @@ test('qf-run junit collection loops collect every module without collisions', as
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// Variants of each defect class that the first version of these checks missed.
+const hits = (body, check) => checksHit(plugin({ 'skills/a/SKILL.md': skill('a', body) })).includes(check);
+
+test('hardcoded environment: -e, --environment and QF_ENVIRONMENT= are all flagged', () => {
+  for (const body of [
+    'qf acme collect r.json --format jest -e staging',
+    '`qf <identifier> collect <file> -e "local"`',
+    '`qf acme collect r.json -e=ci`',
+    '`qf acme collect r.json --environment=ci`',
+    '`QF_ENVIRONMENT=ci qf acme collect r.json`',
+    '```bash\nexport QF_ENVIRONMENT=staging\nqf acme collect r.json\n```',
+  ]) assert.ok(hits(body, 'hardcoded-environment'), body);
+  for (const body of [
+    '**Do not pass `--environment`.**',
+    'set `QF_ENVIRONMENT` to an environment the project has',
+    '`set -e` at the top of the script, then `grep -e foo`',
+    '`bash -e script.sh`',
+  ]) assert.ok(!hits(body, 'hardcoded-environment'), body);
+});
+
+test('token on argv: extra positionals, quoted positionals, QF_TOKEN=, pipes and redirects are flagged', () => {
+  for (const body of [
+    '`qf login acme qf_live_123`',
+    '`qf login acme "$TOKEN"`',
+    "`qf login 'acme'`",
+    '`qf login --force acme qf_live_123`',
+    '```\nqf login acme qf_123   # then continue\n```',
+    'qf login acme $(cat token.txt)',
+    '`QF_TOKEN=qf_123 qf login acme`',
+    'export QF_TOKEN=abc',
+    '`echo "$T" | qf login acme`',
+    '`printf %s "$T" |qf login acme`',
+    '`qf login acme < token.txt`',
+  ]) assert.ok(hits(body, 'token-in-chat-or-argv'), body);
+  for (const body of [
+    '`qf login acme`',
+    '`qf login acme --force`',
+    '```\nqf login acme-api   (run in your terminal)\n```',
+    '```\n  then run `qf login <identifier>` in your terminal for each package above.\n```',
+    'Run each `qf login` in your own terminal.',
+    'The CLI also reads `QF_TOKEN`, but never set it for the user.',
+  ]) assert.ok(!hits(body, 'token-in-chat-or-argv'), body);
+});
+
+test('token solicitation: ask/provide/send/reply/enter/paste near token or API key is flagged unless negated', () => {
+  for (const body of [
+    'Ask the user for their Qualflare token.',
+    'Please provide your API key so I can log in.',
+    'Send me the access token.',
+    'Reply with your token to continue.',
+    'Enter your token when you are ready.',
+    'Paste your project token and I will register it.',
+    'Your token — paste it here.',
+    'Once you have the API key, send it in this chat.',
+  ]) assert.ok(hits(body, 'token-in-chat-or-argv'), body);
+  for (const body of [
+    '**Never ask for, accept, or handle the token yourself.**',
+    'Do not paste the token here.',
+    "Don't send your API key in the chat.",
+    'It asks for the token at a hidden prompt.',
+    'If the user pastes a token into the chat anyway, tell them to revoke it.',
+    'For a directory without that second token, ask first: "`<token>` is a directory."',
+    'Get a token from the settings page.',
+  ]) assert.ok(!hits(body, 'token-in-chat-or-argv'), body);
+});
+
+test('identifier-scoped validate is flagged in prose and with any identifier form', () => {
+  for (const body of [
+    'Then run qf acme validate on the file.',
+    '`qf ${identifier} validate --format jest r.json`',
+    'qf <identifier> validate --format x f',
+    '```\nqf my-project validate r.json\n```',
+  ]) assert.ok(hits(body, 'identifier-scoped-validate'), body);
+  for (const body of [
+    'Run qf validate on the file.',
+    '`qf validate --format jest r.json`',
+    '`Error: no identifier "validate" configured`',
+    'qf collect will validate the file first',
+  ]) assert.ok(!hits(body, 'identifier-scoped-validate'), body);
+});

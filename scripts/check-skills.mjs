@@ -128,24 +128,74 @@ export function checkBareProjectDir({ files }) {
 }
 
 // A token must never be requested in chat (it lands in the transcript and goes
-// to the model) nor passed on argv (process list, shell history).
+// to the model) nor passed on argv (process list, shell history), in the
+// environment, or on stdin — `qf login` reads QF_TOKEN and a piped stdin too, so
+// all of them are the token leaving the hidden prompt.
+
+// The places a skill writes a command: inline code spans, fenced-block lines,
+// and plain lines that start with the command. Returns [{ text, index }] where
+// index is the offset of text in the file.
+export function commandContexts(text) {
+  const out = [];
+  let inFence = false;
+  let offset = 0;
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) inFence = !inFence;
+    else if (inFence || /^\s*(?:\$\s+)?(?:qf|QF_\w+=|echo|printf|cat)\b/.test(line)) out.push({ text: line, index: offset });
+    else for (const m of line.matchAll(/`([^`\n]+)`/g)) out.push({ text: m[1], index: offset + m.index + 1 });
+    offset += line.length + 1;
+  }
+  return out;
+}
+
+/** Why one `qf login ...` command leaks the token, or null. `args` is what follows `qf login`. */
+export function loginArgvProblem(args) {
+  const positionals = [];
+  // A backtick ends the command (fenced examples quote commands inline too).
+  for (const tok of args.split('`')[0].trim().split(/\s+/)) {
+    if (tok === '' || /^[|;&>#(]/.test(tok) || tok === '—' || tok === '<<<') break;
+    if (tok === '<') return 'reads the token from a redirected stdin';
+    if (tok.startsWith('-')) continue; // --force
+    if (/^["']/.test(tok)) return `quoted argument ${tok} (a token or a secret substitution) on argv`;
+    positionals.push(tok);
+  }
+  if (positionals.length > 1) return `${positionals.length} positional arguments; the second is the token on argv`;
+  return null;
+}
+
+// "token" as a secret, not as an argument word ("the second token", `<token>`).
+const SECRET = String.raw`(?<![<\w])(?<!(?:first|second|third|next|last|each|argument|slug) )(?:api[ -]?keys?|(?:access[ -])?tokens?)\b`;
+const SOLICIT_VERB = String.raw`\b(?:ask|provide|send|reply|enter|paste|share|type)\b`;
+
 export function checkTokenHandling({ files }) {
   const out = [];
   for (const f of files) {
     const text = f.text.split(CLI_EMPTY_HINT).join(' '.repeat(CLI_EMPTY_HINT.length));
-    const push = (m, message) =>
-      out.push({ check: 'token-in-chat-or-argv', file: f.rel, line: lineOf(text, m.index), message });
-    // `qf login <id> <token>` / `qf login acme <pasted-token>`: a second
-    // positional argument is the token on argv. Flags (--force) are fine.
-    each(/qf login\s+[^\s`'"|]+[ \t]+(?![-(])[^\s`'"|)]+/, text, (m) =>
-      push(m, `"${m[0]}" puts the token on argv; tell the user to run \`qf login <identifier>\` in their own terminal (hidden prompt)`));
-    each(/pasted[- ]token/i, text, (m) => push(m, `"${m[0]}": a skill must not take a token from the chat`));
-    // "Paste the token below", "paste your API key here" — unless negated.
-    each(/paste\s+(?:the|your|a)\s+(?:\w+\s+)?(?:token|api[ -]?key)\b[^.\n]{0,40}?\b(?:below|here|in(?:to)? (?:the )?chat)/i, text, (m) => {
-      const before = text.slice(Math.max(0, m.index - 16), m.index);
-      if (/\b(?:not|never|n't)\s+$/i.test(before)) return;
-      push(m, `"${m[0]}" solicits a secret in chat`);
-    });
+    const pushAt = (index, message) =>
+      out.push({ check: 'token-in-chat-or-argv', file: f.rel, line: lineOf(text, index), message });
+    for (const c of commandContexts(text)) {
+      for (const m of c.text.matchAll(/\bqf\s+login\b(.*)$/g)) {
+        const why = loginArgvProblem(m[1]);
+        if (why) pushAt(c.index + m.index, `"${m[0].trim()}": ${why}; tell the user to run \`qf login <identifier>\` in their own terminal (hidden prompt)`);
+      }
+    }
+    each(/\bQF_TOKEN=/, text, (m) => pushAt(m.index, '"QF_TOKEN=" puts the token in a command line or script; use the hidden prompt of `qf login <identifier>`'));
+    each(/\|\s*qf\s+login\b/, text, (m) => pushAt(m.index, `"${m[0]}" pipes a token into qf login; use its hidden prompt in the user's own terminal`));
+    each(/pasted[- ]token/i, text, (m) => pushAt(m.index, `"${m[0]}": a skill must not take a token from the chat`));
+    // "Paste the token below", "ask the user for their API key", "reply with
+    // your token", "your token — send it here" — unless negated ("never ask for
+    // the token", "do not paste the token here").
+    const solicit = [
+      new RegExp(`${SOLICIT_VERB}[^.\\n]{0,60}?${SECRET}`, 'i'),
+      new RegExp(`${SECRET}[^.\\n]{0,30}?${SOLICIT_VERB}\\s+(?:it\\s+|them\\s+)?(?:here|below|in(?:to)? (?:the |this )?chat)`, 'i'),
+    ];
+    for (const re of solicit) {
+      each(re, text, (m) => {
+        const sentence = text.slice(Math.max(0, m.index - 40), m.index).split(/[.!?\n]\s/).pop();
+        if (/\b(?:never|not|don't|do not|n't|without)\b/i.test(sentence)) return;
+        pushAt(m.index, `"${m[0]}" solicits a secret in chat`);
+      });
+    }
   }
   return out;
 }
@@ -202,14 +252,18 @@ export function checkUnsupportedRunnerFlags({ files }) {
 // is the one every project is created with.
 export function checkHardcodedEnvironment({ files }) {
   const out = [];
+  const push = (f, m, what) =>
+    out.push({
+      check: 'hardcoded-environment',
+      file: f.rel,
+      line: lineOf(f.text, m.index),
+      message: `do not set the environment (${what}); the CLI uses $QF_ENVIRONMENT, set by the user, or "development"`,
+    });
   for (const f of files) {
-    each(/--environment[ =]["'<\w$]/, f.text, (m) =>
-      out.push({
-        check: 'hardcoded-environment',
-        file: f.rel,
-        line: lineOf(f.text, m.index),
-        message: 'do not pass --environment; the CLI uses $QF_ENVIRONMENT or "development"',
-      }));
+    each(/--environment[ =]["'<\w$]/, f.text, (m) => push(f, m, '--environment'));
+    // -e is --environment's short form on qf collect; only inside a qf command.
+    each(/\bqf\b[^\n`|;]*?\s-e(?:[ =]|(?=["'<$]))\s*["'<\w$]/, f.text, (m) => push(f, m, '-e'));
+    each(/\bQF_ENVIRONMENT=/, f.text, (m) => push(f, m, 'QF_ENVIRONMENT='));
   }
   return out;
 }
@@ -235,12 +289,13 @@ export function checkStderrKeywordClassification({ files }) {
 export function checkIdentifierScopedValidate({ files }) {
   const out = [];
   for (const f of files) {
-    each(/qf\s+<[^>]+>\s+validate\b/, f.text, (m) =>
+    // `qf <identifier> validate`, `qf ${id} validate`, and prose "qf acme validate".
+    each(/\bqf\s+(?!validate\b)[^\s`'"|;]+\s+validate\b/, f.text, (m) =>
       out.push({
         check: 'identifier-scoped-validate',
         file: f.rel,
         line: lineOf(f.text, m.index),
-        message: 'use `qf validate` (no login needed), not `qf <identifier> validate`',
+        message: `"${m[0]}": use \`qf validate\` (no login needed), not \`qf <identifier> validate\``,
       }));
   }
   return out;
