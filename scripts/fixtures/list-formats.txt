@@ -1,0 +1,40 @@
+
+Generic (JUnit-compatible):
+  - junit
+  - ctrf
+  - qualflare-json
+
+Unit Testing:
+  - python
+  - golang
+  - jest
+  - vitest
+  - mocha
+  - rspec
+  - phpunit
+  - testng
+
+BDD / Behavior-Driven:
+  - cucumber
+  - karate
+
+UI / E2E / Mobile Testing:
+  - detox
+  - playwright
+  - cypress
+  - selenium
+  - testcafe
+  - maestro
+  - xctest
+  - espresso
+
+API Testing:
+  - newman
+  - k6
+
+Security Testing:
+  - zap
+  - trivy
+  - snyk
+  - sonarqube
+

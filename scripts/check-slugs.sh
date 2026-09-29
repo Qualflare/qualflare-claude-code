@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# check-slugs.sh — verify that every Framework slug in the Go source
-# is referenced in skills/qf-init/references/framework-slugs.md
+# check-slugs.sh — verify that the Framework slugs in the CLI's Go source and
+# skills/qf-init/references/framework-slugs.md are the same set.
+#
+# Usage: bash scripts/check-slugs.sh
+#        QF_CLI_DIR=/path/to/qualflare-cli bash scripts/check-slugs.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# QF_CLI_DIR, when set, points at a qualflare-cli checkout and wins. Otherwise
 # qualflare-ai lives inside the Astrais monorepo alongside qualflare-cli.
 # Resolve the monorepo root via git: the .git directory's parent is the
 # qualflare-ai checkout root, and qualflare-cli is a sibling of that.
@@ -22,8 +26,12 @@ else
   QUALFLARE_AI_ROOT="$REPO_ROOT"
 fi
 
-ASTRAIS_ROOT="$(cd "$QUALFLARE_AI_ROOT/.." && pwd)"
-GO_FILE="$ASTRAIS_ROOT/qualflare-cli/internal/core/domain/models.go"
+if [[ -n "${QF_CLI_DIR:-}" ]]; then
+  CLI_ROOT="$QF_CLI_DIR"
+else
+  CLI_ROOT="$(cd "$QUALFLARE_AI_ROOT/.." && pwd)/qualflare-cli"
+fi
+GO_FILE="$CLI_ROOT/internal/core/domain/models.go"
 SLUGS_MD="$REPO_ROOT/skills/qf-init/references/framework-slugs.md"
 
 if [[ ! -f "$GO_FILE" ]]; then
@@ -36,32 +44,8 @@ if [[ ! -f "$SLUGS_MD" ]]; then
   exit 1
 fi
 
-# Extract slugs from lines like: FrameworkFoo Framework = "bar"
-# Use perl for cross-platform regex (macOS grep lacks -P).
-# Avoid mapfile (bash 4+) for macOS compatibility; use a while-read loop instead.
-SLUGS=()
-while IFS= read -r slug; do
-  SLUGS+=("$slug")
-done < <(perl -ne 'if (/Framework\w+\s+Framework\s*=\s*"(\w+)"/) { print "$1\n" }' "$GO_FILE")
-
-if [[ ${#SLUGS[@]} -eq 0 ]]; then
-  echo "ERROR: No slugs found in $GO_FILE — check the pattern" >&2
-  exit 1
-fi
-
-MISSING=()
-for slug in "${SLUGS[@]}"; do
-  if ! grep -qF "\`${slug}\`" "$SLUGS_MD" && ! grep -qF "\"${slug}\"" "$SLUGS_MD"; then
-    MISSING+=("$slug")
-  fi
-done
-
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-  echo "ERROR: The following slug(s) from models.go are missing in framework-slugs.md:" >&2
-  for slug in "${MISSING[@]}"; do
-    echo "  - $slug" >&2
-  done
-  exit 1
-fi
-
-echo "✅ All ${#SLUGS[@]} slugs accounted for in framework-slugs.md"
+# The comparison itself lives in slugs.mjs (tested by slugs.test.mjs). It reads
+# AllFrameworks() — the list the CLI's --format validation uses — accepts
+# hyphenated slugs such as `qualflare-json`, and fails in BOTH directions: a CLI
+# slug missing from the docs, or a doc slug the CLI no longer accepts.
+exec node "$SCRIPT_DIR/slugs.mjs" --go "$GO_FILE" --docs "$SLUGS_MD"

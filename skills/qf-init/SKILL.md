@@ -404,7 +404,7 @@ If `qf` itself is not on PATH (the command exits 127 / not found), still print t
 - **`.qualflare/test-state.md` already exists:** Overwrite it after informing the user (as described in Step 5). Do not ask for confirmation beyond the note — the user already triggered re-init by running `/qf-init`.
 - **CLAUDE.md markers already exist:** Update the content between the markers in-place. Do not append a second block. Do not touch content outside the markers. (Case B above.)
 - **User provides no notes in Step 4:** Record `None` in the `## Notes` section.
-- **Subagent detects vitest:** Map it to the `jest` slug. Note in the framework table: `jest (vitest)`.
+- **Subagent detects vitest:** Use the `jest` slug (the CLI reads `vitest` with the same parser, and /qf-run's `jest` row runs Vitest). Write exactly `jest` in the Slug column — never `jest (vitest)`, which breaks slug lookups; mention Vitest under `## Notes` instead.
 - **Subagent detects cargo-test (Rust):** Do not assign a slug. Include a warning note in `.qualflare/test-state.md` under `## Notes` that cargo-test is detected but not yet uploadable to Qualflare.
 - **No test frameworks detected at all:** Do not abort. Write the state file with an empty framework table and add a note: "No test frameworks detected automatically. Edit this file manually to add framework entries."
 - **Workspace declarations found but no package directories on disk:** Treat as single-package. Emit a note in the outro.

@@ -59,17 +59,19 @@ It only fires when something worth covering was changed — trivial edits, confi
 
 If your tests run with any of these, Qualflare has you covered.
 
-**Unit** — `jest` · `mocha` · `golang` · `python` (pytest) · `rspec` · `phpunit` · `junit` · `testng`
+**Unit** — `jest` · `vitest` · `mocha` · `golang` · `python` (pytest) · `rspec` · `phpunit` · `testng`
 
 **BDD** — `cucumber` · `karate`
 
-**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe` · `maestro` · `xctest` · `espresso`
+**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe` · `maestro` · `xctest` · `espresso` · `detox`
 
 **API** — `newman` · `k6`
 
 **Security** — `zap` · `trivy` · `snyk` · `sonarqube`
 
-Vitest results upload via the `jest` slug. Multi-framework monorepos work too — `/qf-init` detects each workspace and tracks them separately.
+**Generic** — `junit` (any JUnit XML) · `ctrf` ([Common Test Report Format](https://ctrf.io) JSON) · `qualflare-json` (output of Qualflare's own reporters)
+
+`/qf-init` records Vitest packages under the `jest` slug, which reads the same report. Multi-framework monorepos work too — `/qf-init` detects each workspace and tracks them separately.
 
 ## Requirements
 

@@ -1,8 +1,9 @@
 # Qualflare Framework Slugs
 
 > **IMPORTANT**: This file mirrors the canonical framework slugs defined in  
-> `qualflare-cli/internal/core/domain/models.go`. Keep in sync manually  
-> whenever frameworks are added or renamed in the Go source.
+> `qualflare-cli/internal/core/domain/models.go` (`AllFrameworks()`), which is also  
+> what `qf list-formats` prints. `scripts/check-slugs.sh` and plugin CI fail when the  
+> first column of either table below differs from the CLI's set.
 
 These are the **only valid slugs** accepted by `qf <identifier> collect --format <slug>`.
 
@@ -13,9 +14,12 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 | Slug | Category | Common indicators | Notes |
 |------|----------|-------------------|-------|
 | `junit` | Generic | `pom.xml`, `build.gradle`, `@Test` annotations, JUnit XML reports | Catch-all for JVM runners that produce JUnit XML (Surefire, Failsafe). Prefer `testng` when project uses TestNG directly. |
+| `ctrf` | Generic | A CTRF reporter in deps (`jest-ctrf-json-reporter`, `playwright-ctrf-json-reporter`, `cypress-ctrf-json-reporter`, `mocha-ctrf-json-reporter`, `wdio-ctrf-json-reporter`, `pytest-json-ctrf`, …), a `ctrf/` output directory, `ctrf-report.json` | Common Test Report Format JSON ([ctrf.io](https://ctrf.io)). Only when a tool has no dedicated slug (WebdriverIO, Jasmine, Nightwatch, CodeceptJS, .NET MSTest/NUnit/xUnit) or the project already emits CTRF. Report files, not test sources. |
+| `qualflare-json` | Generic | A Qualflare reporter in deps (`@qualflare/playwright`, `@qualflare/cypress`, `@qualflare/cucumberjs`, `@qualflare/vitest`, `@qualflare/jest`) configured to write files (`outputDir` / `outputFile`) | The Collect JSON written by Qualflare's own reporters, used to merge sharded CI runs. Report files, not test sources; the location is whatever the reporter's `outputDir` says. |
 | `python` | Unit | `pytest.ini`, `pyproject.toml` (`[tool.pytest...]`), `setup.cfg` (`[tool:pytest]`), `conftest.py`, `requirements*.txt` containing `pytest` | The slug for pytest results |
 | `golang` | Unit | `*_test.go` files, `go.mod` present | The slug for go test results (`go test -json`) |
-| `jest` | Unit | `jest.config.*`, `"jest"` key in `package.json`, `@jest/` deps | Also use for vitest (vitest produces jest-compatible output) |
+| `jest` | Unit | `jest.config.*`, `"jest"` key in `package.json`, `@jest/` deps | /qf-init also records Vitest packages under `jest` (see `vitest`) |
+| `vitest` | Unit | `vitest.config.*`, `vitest` in deps/devDeps, a `test:` block in `vite.config.*` | Accepted by the CLI; the same parser as `jest` reads it, and the launch is labelled `jest` either way. /qf-init records Vitest packages under the `jest` slug, whose /qf-run row already runs Vitest when it is a dependency; use `--format vitest` only for a manual `qf <identifier> collect`. |
 | `mocha` | Unit | `mocha` in `package.json` deps/devDeps, `.mocharc.*`, `test/` dir with JS files | |
 | `rspec` | Unit | `Gemfile` containing `rspec`, `.rspec`, `spec/` directory | |
 | `phpunit` | Unit | `phpunit.xml` / `phpunit.xml.dist`, `composer.json` containing `phpunit/phpunit`, `tests/` dir with `*Test.php` | |
@@ -29,6 +33,7 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 | `maestro` | E2E | `.maestro/` directory, `*.yaml`/`*.yml` files with `appId:` key inside `.maestro/` | Mobile UI testing (iOS/Android); test files are YAML flows |
 | `xctest` | E2E | `*UITests/`, `*Tests/` directories under an Xcode project, `XCTestCase` in `.swift`/`.m` files | iOS/macOS UI and unit testing via Xcode |
 | `espresso` | E2E | `androidTest/` directory, `@RunWith(AndroidJUnit4.class)` in `.java`/`.kt`, `espresso` in `build.gradle` deps | Android UI testing |
+| `detox` | E2E | `.detoxrc.{js,json}`, `detox.config.*`, a `"detox"` key in `package.json`, `detox` in deps/devDeps | React Native E2E. Detox drives Jest, so its report is a Jest report; `--format detox` tells the CLI to look for Detox artifacts. Prefer `detox` over `jest` for the Detox suite itself (usually `e2e/`). |
 | `newman` | API | `*.postman_collection.json`, `newman` in deps or scripts | Newman is the Postman CLI runner |
 | `k6` | API | `*.k6.js`, `k6/` directory, `import { ... } from 'k6'` in JS files | |
 | `zap` | Security | `zap-report.{xml,json,html}`, `zap.yaml`, `.zap/` directory | OWASP ZAP (Zed Attack Proxy) |
@@ -45,9 +50,12 @@ Use these globs when scanning a project to confirm framework presence or locate 
 | Slug | Glob patterns |
 |------|---------------|
 | `junit` | `**/pom.xml`, `**/build.gradle` |
+| `ctrf` | `**/ctrf/**/*.json`, `**/ctrf-report.json` |
+| `qualflare-json` | *(the Qualflare reporter's configured `outputDir`)* |
 | `python` | `tests/**/test_*.py`, `tests/**/*_test.py`, `**/test_*.py` |
 | `golang` | `**/*_test.go` |
 | `jest` | `**/*.test.{js,jsx,ts,tsx}`, `**/__tests__/**/*.{js,ts}`, `**/*.spec.{js,jsx,ts,tsx}` |
+| `vitest` | `**/*.{test,spec}.{js,jsx,ts,tsx,mjs,mts}` |
 | `mocha` | `test/**/*.{js,mjs,cjs}`, `**/*.test.{js,mjs}` |
 | `rspec` | `spec/**/*_spec.rb` |
 | `phpunit` | `tests/**/*Test.php` |
@@ -61,6 +69,7 @@ Use these globs when scanning a project to confirm framework presence or locate 
 | `maestro` | `**/.maestro/**/*.yaml`, `**/.maestro/**/*.yml` |
 | `xctest` | `**/*UITests/**/*.swift`, `**/*Tests/**/*.swift`, `**/*UITests/**/*.m`, `**/*Tests/**/*.m` |
 | `espresso` | `**/androidTest/**/*.java`, `**/androidTest/**/*.kt` |
+| `detox` | `e2e/**/*.test.{js,ts}`, `e2e/**/*.e2e.{js,ts}` |
 | `newman` | `**/*.postman_collection.json` |
 | `k6` | `**/*.k6.js`, `**/k6/**/*.js` |
 | `zap` | `**/zap-report.{xml,json,html}` |
@@ -76,5 +85,4 @@ The following tools are frequently detected in projects but do **not** have thei
 
 | Detected tool | Action |
 |---------------|--------|
-| **vitest** | Map to `jest` — vitest uses a jest-compatible reporter and produces identical output format |
 | **cargo-test** | No Qualflare slug yet. Mark as detected but not uploadable; surface a warning to the user |

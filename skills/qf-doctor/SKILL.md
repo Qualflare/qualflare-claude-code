@@ -165,7 +165,7 @@ For each unique slug in `## Frameworks in use`, run the version command from the
 | junit | check `mvn --version` OR `gradle --version` depending on whether `pom.xml` or `build.gradle` is present |
 | cucumber | `npx cucumber-js --version` |
 
-Skip tooling checks for slugs with no standard local runner (`selenium`, `testcafe`, `karate`, `testng`, `maestro`, `xctest`, `espresso`, `newman`, `k6`, `zap`, `trivy`, `snyk`, `sonarqube`) — these require platform-specific toolchains or CI/cloud setups and are not expected to be present in every dev environment.
+Skip tooling checks for slugs with no standard local runner (`ctrf`, `qualflare-json`, `detox`, `selenium`, `testcafe`, `karate`, `testng`, `maestro`, `xctest`, `espresso`, `newman`, `k6`, `zap`, `trivy`, `snyk`, `sonarqube`) — these require platform-specific toolchains or CI/cloud setups and are not expected to be present in every dev environment.
 
 For each checked tool:
 - **Exit 0:** status `ok` — label `${slug} tooling`, detail the first line of stdout (version string).
@@ -184,7 +184,7 @@ Setup
   CLI                ✅  qf 1.2.3
   Auth (acme-web)    ✅  configured
   Auth (acme-api)    ⚠️  not configured
-  Slug sync          ✅  all 23 slugs match
+  Slug sync          ✅  all 27 slugs match
   Config             ✅  stop hook enabled
   State file age     ⚠️  34 day(s) old — getting stale
   Plugin version     ⚠️  state has v0.4.0, current is v0.7.0
