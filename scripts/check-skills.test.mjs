@@ -200,3 +200,21 @@ test('a runner row that does not remove its previous result first is flagged', (
   const ju = '| `junit` | See note below | `junit` | `<R>/junit/` |';
   assert.ok(!hit([ju], '**junit note:** Check for `build.gradle`. First `rm -rf "<R>/junit"`. Then `gradle cleanTest test`.\n'));
 });
+
+// `/qf-run cypress` in a standard Cypress project: `cypress` is also the ./cypress
+// directory. If path matching ran first, the run became a report upload of that
+// directory instead of running Cypress.
+test('qf-run treats an exact slug as a slug filter before any path matching', async () => {
+  const { readFileSync } = await import('node:fs');
+  const text = readFileSync(join(REPO, 'skills/qf-run/SKILL.md'), 'utf8');
+  const rules = text.slice(text.indexOf('**Interpret `$ARGUMENTS`**'), text.indexOf('If the filtered queue is empty'));
+  const items = [...rules.matchAll(/^(\d+)\. (.*)$/gm)].map((m) => ({ n: Number(m[1]), text: m[2] }));
+  const slugRule = items.find((i) => /\*\*exactly\*\* a slug in the `Slug` column of `## Frameworks in use`/.test(i.text));
+  const pathRules = items.filter((i) => /path|report-upload/i.test(i.text) && i !== slugRule);
+  assert.ok(slugRule, 'an "exactly a slug in ## Frameworks in use" rule exists');
+  assert.ok(pathRules.length > 0);
+  for (const r of pathRules) assert.ok(slugRule.n < r.n, `slug rule (${slugRule.n}) must come before "${r.text.slice(0, 50)}…" (${r.n})`);
+  // A bare directory is not a report until the user confirms it or names a slug.
+  assert.match(rules, /existing \*\*directory\*\* \*and\* a second token that is a slug/);
+  assert.match(rules, /enter report-upload mode only if the user confirms/);
+});

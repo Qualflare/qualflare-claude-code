@@ -33,9 +33,13 @@ Where `cwd` = `${CLAUDE_PROJECT_DIR}` for `(root)`, or `${CLAUDE_PROJECT_DIR}/<p
 **Interpret `$ARGUMENTS`** — check these rules in order and use the first that matches:
 
 1. `$ARGUMENTS` is empty → no filtering; run the full queue.
-2. The first token is a package path, or a prefix of one, from `## Packages` → package filter: keep only queue items whose `package` starts with it. If a second token is present, it is a slug: also keep only items whose `slug` matches.
-3. The first token is a path to an existing file or directory (relative to `${CLAUDE_PROJECT_DIR}` or absolute; check with Read or Glob), or a glob that matches at least one file → **report-upload mode**. Go to "Report-upload mode" below and skip Step 2.
-4. Otherwise the first token is a framework slug: keep only items whose `slug` matches.
+2. The first token is **exactly** a slug in the `Slug` column of `## Frameworks in use` → slug filter: keep only items whose `slug` matches. Check this **before** any path matching: in a standard Cypress project `cypress` is also the `./cypress` directory, and `/qf-run cypress` means "run Cypress", not "upload that directory".
+3. The first token is a package path, or a prefix of one, from `## Packages` → package filter: keep only queue items whose `package` starts with it. If a second token is present, it is a slug: also keep only items whose `slug` matches.
+4. The first token is clearly a report → **report-upload mode**. Go to "Report-upload mode" below and skip Step 2. A token is clearly a report when it is (paths relative to `${CLAUDE_PROJECT_DIR}` or absolute; check with Read or Glob):
+   - an existing **file**, or
+   - a **glob** that matches at least one file, or
+   - an existing **directory** *and* a second token that is a slug listed in `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. For a directory without that second token, ask first: "`<token>` is a directory. Upload the reports inside it to Qualflare? If so, which framework produced them?" — and enter report-upload mode only if the user confirms.
+5. Otherwise the first token is a framework slug: keep only items whose `slug` matches.
 
 If the filtered queue is empty, tell the user:
 > "No matching packages or frameworks found for `<$ARGUMENTS>`. Check `/qf-state` for available packages and slugs. To upload a report you produced yourself, pass its path: `/qf-run <report-path> <slug>`."
