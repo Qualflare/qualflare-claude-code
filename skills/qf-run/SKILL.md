@@ -96,17 +96,19 @@ npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress
 ```
 Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`. `[name]` is the spec's file name only, so two specs with the same name in different folders (`admin/login.cy.ts`, `shop/login.cy.ts`) would both write `login.json`; `overwrite=false` makes mochawesome add a counter (`login_001.json`) instead of replacing the first report. Keep it.
 
-**webdriverio note:** this uploads through a native reporter, not a runner flag: WebdriverIO runs each spec file in its own worker, and only `@qualflare/webdriverio` together with its launcher service writes the per-worker reports under one run id. Read the `wdio.conf.*` in `cwd`.
-- If `reporters` includes `@qualflare/webdriverio` (`@qualflare/appium` for `appium`) **and** `services` includes `@qualflare/webdriverio/service` (`@qualflare/appium/service`) or the `QualflareService` class, run:
-  ```bash
-  rm -rf "<R>/webdriverio" && mkdir -p "<R>/webdriverio"
-  QUALFLARE_RESULTS_DIR="<R>/webdriverio" npx wdio run <the wdio.conf file>
-  ```
-  `QUALFLARE_RESULTS_DIR` points both the reporter and its service at `<R>/webdriverio` — unless the reporter entry in `wdio.conf` sets `resultsDir` itself, which wins: then upload that directory instead, and do not delete it yourself (the service already clears earlier runs' reports from it). Upload the **directory**, never one file: each worker writes its own report, and the CLI merges them by run id.
-- If the reporter is configured but the service is not, tell the user: "Without the Qualflare service, each WebdriverIO worker reports under its own run id and the upload keeps only one spec file's results. Add `'@qualflare/webdriverio/service'` (Appium: `'@qualflare/appium/service'`) to `services` in `wdio.conf`, then re-run `/qf-run`." and skip this item.
-- If neither is configured, do not edit `wdio.conf` yourself. Tell the user: "WebdriverIO results upload through `@qualflare/webdriverio` (Appium: `@qualflare/appium`). Install it, add the reporter and its service to `wdio.conf` as its README shows, then re-run `/qf-run`." and skip this item.
+**webdriverio note:** this uploads through a native reporter, not a runner flag. WebdriverIO runs each spec file in its own worker, each worker writes its own report, and the CLI merges the reports that share one run id. Read the `wdio.conf.*` in `cwd`.
+- If `reporters` includes `@qualflare/webdriverio`, check the installed version from `cwd`: `node -p "require('@qualflare/webdriverio/package.json').version"`.
+  - **0.2.0 or newer:** the reporter alone is enough. Every worker derives the shared run id from the `wdio run` launcher process, so `services` needs no Qualflare entry (one is harmless). Run:
+    ```bash
+    rm -rf "<R>/webdriverio" && mkdir -p "<R>/webdriverio"
+    QUALFLARE_RESULTS_DIR="<R>/webdriverio" npx wdio run <the wdio.conf file>
+    ```
+  - **Older than 0.2.0:** run the same command if `services` includes `@qualflare/webdriverio/service` or the `QualflareService` class. If it doesn't, tell the user: "Before 0.2.0, each WebdriverIO worker reports under its own run id without the Qualflare service, and the upload keeps only one spec file's results. Upgrade with `npm install --save-dev @qualflare/webdriverio@latest` (0.2.0+ needs no service), then re-run `/qf-run`." and skip this item.
 
-**appium note:** Appium through WebdriverIO, so the webdriverio note's three cases apply with `@qualflare/appium` and `@qualflare/appium/service` in place of the WebdriverIO package. When both are configured, run:
+  `QUALFLARE_RESULTS_DIR` points the reporter (and the service, if configured) at `<R>/webdriverio` — unless the reporter entry in `wdio.conf` sets `resultsDir` itself, which wins: then upload that directory instead, and do not delete it yourself (the CLI ignores reports from earlier runs, by run id). Upload the **directory**, never one file: each worker writes its own report, and the CLI merges them by run id.
+- If the reporter is not configured, do not edit `wdio.conf` yourself. Tell the user: "WebdriverIO results upload through `@qualflare/webdriverio` (Appium: `@qualflare/appium`). Install it, add the reporter to `wdio.conf` as its README shows, then re-run `/qf-run`." and skip this item.
+
+**appium note:** Appium through WebdriverIO, so the webdriverio note's cases apply with `@qualflare/appium` in place of the WebdriverIO package: check its version with `node -p "require('@qualflare/appium/package.json').version"` (0.2.0 or newer needs no service; older needs `@qualflare/appium/service`). When it can run, run:
 ```bash
 rm -rf "<R>/appium" && mkdir -p "<R>/appium"
 QUALFLARE_RESULTS_DIR="<R>/appium" npx wdio run <the wdio.conf file>
