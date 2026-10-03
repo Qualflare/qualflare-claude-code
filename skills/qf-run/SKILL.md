@@ -84,6 +84,8 @@ Every command writes the format the CLI parser for that upload slug reads (`qf v
 | `phpunit` | `rm -f "<R>/phpunit.xml"`, then `./vendor/bin/phpunit --log-junit "<R>/phpunit.xml"` | `phpunit` | `<R>/phpunit.xml` |
 | `junit` | See note below | `junit` | `<R>/junit/` (one XML per test class) |
 | `cucumber` | See note below | `cucumber` | `<R>/cucumber.json` |
+| `webdriverio` | See note below | `webdriverio` | `<R>/webdriverio/` (one JSON per worker) |
+| `appium` | See note below | `appium` | `<R>/appium/` (one JSON per worker) |
 
 **Remove the previous result before every run.** Each row (and each note below) first deletes that framework's result file (`rm -f`) or result directory (`rm -rf`, then `mkdir -p`). A runner that crashes or hits a configuration error before writing anything would otherwise leave the last run's report in place, and it would upload as this commit's results.
 
@@ -93,6 +95,23 @@ rm -rf "<R>/cypress" && mkdir -p "<R>/cypress"
 npx cypress run --reporter mochawesome --reporter-options "reportDir=<R>/cypress,reportFilename=[name],overwrite=false,html=false,json=true,quiet=true"
 ```
 Cypress runs one reporter per spec, so this writes one JSON file per spec into `<R>/cypress/`. `[name]` is the spec's file name only, so two specs with the same name in different folders (`admin/login.cy.ts`, `shop/login.cy.ts`) would both write `login.json`; `overwrite=false` makes mochawesome add a counter (`login_001.json`) instead of replacing the first report. Keep it.
+
+**webdriverio note:** this uploads through a native reporter, not a runner flag: WebdriverIO runs each spec file in its own worker, and only `@qualflare/webdriverio` together with its launcher service writes the per-worker reports under one run id. Read the `wdio.conf.*` in `cwd`.
+- If `reporters` includes `@qualflare/webdriverio` (`@qualflare/appium` for `appium`) **and** `services` includes `@qualflare/webdriverio/service` (`@qualflare/appium/service`) or the `QualflareService` class, run:
+  ```bash
+  rm -rf "<R>/webdriverio" && mkdir -p "<R>/webdriverio"
+  QUALFLARE_RESULTS_DIR="<R>/webdriverio" npx wdio run <the wdio.conf file>
+  ```
+  `QUALFLARE_RESULTS_DIR` points both the reporter and its service at `<R>/webdriverio` — unless the reporter entry in `wdio.conf` sets `resultsDir` itself, which wins: then upload that directory instead, and do not delete it yourself (the service already clears earlier runs' reports from it). Upload the **directory**, never one file: each worker writes its own report, and the CLI merges them by run id.
+- If the reporter is configured but the service is not, tell the user: "Without the Qualflare service, each WebdriverIO worker reports under its own run id and the upload keeps only one spec file's results. Add `'@qualflare/webdriverio/service'` (Appium: `'@qualflare/appium/service'`) to `services` in `wdio.conf`, then re-run `/qf-run`." and skip this item.
+- If neither is configured, do not edit `wdio.conf` yourself. Tell the user: "WebdriverIO results upload through `@qualflare/webdriverio` (Appium: `@qualflare/appium`). Install it, add the reporter and its service to `wdio.conf` as its README shows, then re-run `/qf-run`." and skip this item.
+
+**appium note:** Appium through WebdriverIO, so the webdriverio note's three cases apply with `@qualflare/appium` and `@qualflare/appium/service` in place of the WebdriverIO package. When both are configured, run:
+```bash
+rm -rf "<R>/appium" && mkdir -p "<R>/appium"
+QUALFLARE_RESULTS_DIR="<R>/appium" npx wdio run <the wdio.conf file>
+```
+and upload the `<R>/appium` directory with `--format appium` (or the reporter's own `resultsDir`, if `wdio.conf` sets one). The run needs its Appium server and device or simulator ready, exactly as the project's own `npx wdio run` does; if it fails before any test starts, report its error and skip this item.
 
 **junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class — in a multi-module build, one set per module (`<module>/target/surefire-reports/`, `<sub>/build/test-results/test/`). Collect them recursively into a directory, never onto a single file path, and prefix each file with its module path so two modules' `TEST-com.acme.FooTest.xml` do not overwrite each other.
 

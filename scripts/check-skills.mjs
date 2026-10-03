@@ -28,10 +28,14 @@ export const PARSER_FORMAT = {
   python: 'xml',
   phpunit: 'xml',
   junit: 'xml',
+  // @qualflare/webdriverio and @qualflare/appium write qualflare-json, one
+  // file per WebdriverIO worker.
+  webdriverio: 'json',
+  appium: 'json',
 };
 
 // Result paths that are directories (one report per spec / per test class).
-export const DIRECTORY_RESULTS = new Set(['cypress', 'junit']);
+export const DIRECTORY_RESULTS = new Set(['cypress', 'junit', 'webdriverio', 'appium']);
 
 // The CLI's own "nothing configured" hint. Skills quote it verbatim to match
 // `qf projects` output, so it is exempt from the token-on-argv check.

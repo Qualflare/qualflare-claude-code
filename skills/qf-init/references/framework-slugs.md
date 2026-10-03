@@ -15,7 +15,7 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 |------|----------|-------------------|-------|
 | `junit` | Generic | `pom.xml`, `build.gradle`, `@Test` annotations, JUnit XML reports | Catch-all for JVM runners that produce JUnit XML (Surefire, Failsafe). Prefer `testng` when project uses TestNG directly. |
 | `ctrf` | Generic | A CTRF reporter in deps (`jest-ctrf-json-reporter`, `playwright-ctrf-json-reporter`, `cypress-ctrf-json-reporter`, `mocha-ctrf-json-reporter`, `wdio-ctrf-json-reporter`, `pytest-json-ctrf`, …), a `ctrf/` output directory, `ctrf-report.json` | Common Test Report Format JSON ([ctrf.io](https://ctrf.io)). Only when a tool has no dedicated slug (WebdriverIO, Jasmine, Nightwatch, CodeceptJS, .NET MSTest/NUnit/xUnit) or the project already emits CTRF. Report files, not test sources. |
-| `qualflare-json` | Generic | A Qualflare reporter in deps (`@qualflare/playwright`, `@qualflare/cypress`, `@qualflare/cucumberjs`, `@qualflare/vitest`, `@qualflare/jest`) configured to write files (`outputDir` / `outputFile`) | The Collect JSON written by Qualflare's own reporters, used to merge sharded CI runs. Report files, not test sources; the location is whatever the reporter's `outputDir` says. |
+| `qualflare-json` | Generic | A Qualflare reporter in deps (`@qualflare/playwright`, `@qualflare/cypress`, `@qualflare/cucumberjs`, `@qualflare/vitest`, `@qualflare/jest`; `@qualflare/webdriverio` and `@qualflare/appium` are detected as their own slugs below) configured to write files (`outputDir` / `outputFile`) | The Collect JSON written by Qualflare's own reporters, used to merge sharded CI runs. Report files, not test sources; the location is whatever the reporter's `outputDir` says. |
 | `python` | Unit | `pytest.ini`, `pyproject.toml` (`[tool.pytest...]`), `setup.cfg` (`[tool:pytest]`), `conftest.py`, `requirements*.txt` containing `pytest` | The slug for pytest results |
 | `golang` | Unit | `*_test.go` files, `go.mod` present | The slug for go test results (`go test -json`) |
 | `jest` | Unit | `jest.config.*`, `"jest"` key in `package.json`, `@jest/` deps | /qf-init also records Vitest packages under `jest` (see `vitest`) |
@@ -34,6 +34,8 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 | `xctest` | E2E | `*UITests/`, `*Tests/` directories under an Xcode project, `XCTestCase` in `.swift`/`.m` files | iOS/macOS UI and unit testing via Xcode |
 | `espresso` | E2E | `androidTest/` directory, `@RunWith(AndroidJUnit4.class)` in `.java`/`.kt`, `espresso` in `build.gradle` deps | Android UI testing |
 | `detox` | E2E | `.detoxrc.{js,json}`, `detox.config.*`, a `"detox"` key in `package.json`, `detox` in deps/devDeps | React Native E2E. Detox drives Jest, so its report is a Jest report; `--format detox` tells the CLI to look for Detox artifacts. Prefer `detox` over `jest` for the Detox suite itself (usually `e2e/`). |
+| `webdriverio` | E2E | `wdio.conf.{js,ts,mjs,cjs}`, `@wdio/cli` in deps/devDeps | WebdriverIO, web or mobile. Uploads come from the native reporter `@qualflare/webdriverio` (reporter **and** its service in `wdio.conf`). If the capabilities in `wdio.conf` name `platformName: 'iOS'`/`'Android'` or `appium:*` keys, record `appium` instead |
+| `appium` | E2E | a `wdio.conf.*` whose capabilities name `platformName` iOS/Android or `appium:automationName`, `appium` or `@wdio/appium-service` in deps/devDeps | Appium through WebdriverIO, via the native reporter `@qualflare/appium`. Appium driven from Java or Python is recorded under that runner's slug (`testng`, `junit`, `python`), not `appium` |
 | `newman` | API | `*.postman_collection.json`, `newman` in deps or scripts | Newman is the Postman CLI runner |
 | `k6` | API | `*.k6.js`, `k6/` directory, `import { ... } from 'k6'` in JS files | |
 | `zap` | Security | `zap-report.{xml,json,html}`, `zap.yaml`, `.zap/` directory | OWASP ZAP (Zed Attack Proxy) |
@@ -72,6 +74,8 @@ Every cell in the second column is either a comma-separated list of backticked g
 | `xctest` | `**/*UITests/**/*.swift`, `**/*Tests/**/*.swift`, `**/*UITests/**/*.m`, `**/*Tests/**/*.m` |
 | `espresso` | `**/androidTest/**/*.java`, `**/androidTest/**/*.kt` |
 | `detox` | `e2e/**/*.test.{js,ts}`, `e2e/**/*.e2e.{js,ts}` |
+| `webdriverio` | `test/specs/**/*.{js,ts,mjs}`, `**/*.e2e.{js,ts,mjs}` |
+| `appium` | `test/specs/**/*.{js,ts,mjs}`, `**/*.e2e.{js,ts,mjs}` |
 | `newman` | `**/*.postman_collection.json` |
 | `k6` | `**/*.k6.js`, `**/k6/**/*.js` |
 | `zap` | `**/zap-report.{xml,json,html}` |

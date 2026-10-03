@@ -27,6 +27,8 @@ UI / E2E / Mobile Testing:
   - maestro
   - xctest
   - espresso
+  - webdriverio
+  - appium
 
 API Testing:
   - newman

@@ -1,0 +1,44 @@
+{
+  "framework": "appium",
+  "platform": "web",
+  "os": "Linux",
+  "browser": "chrome",
+  "branch": "main",
+  "commit": "0000000",
+  "environment": "development",
+  "language": "en-US",
+  "milestone": null,
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-10-03T13:45:18.564Z",
+    "cliName": "qualflare-webdriverio",
+    "runId": "fixture-run"
+  },
+  "suites": [
+    {
+      "name": "specs/login.spec.mjs",
+      "category": "appium",
+      "duration": 81000000,
+      "cases": [
+        {
+          "id": "specs/login.spec.mjs#Login signs in@chrome",
+          "name": "Login signs in",
+          "status": "passed",
+          "duration": 81000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.95",
+            "file": "specs/login.spec.mjs"
+          },
+          "labels": [
+            {
+              "name": "owner",
+              "value": "mobile"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

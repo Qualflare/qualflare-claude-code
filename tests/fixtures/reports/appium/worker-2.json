@@ -1,0 +1,56 @@
+{
+  "framework": "appium",
+  "platform": "web",
+  "os": "Linux",
+  "browser": "chrome",
+  "branch": "main",
+  "commit": "0000000",
+  "environment": "development",
+  "language": "en-US",
+  "milestone": null,
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-10-03T13:45:18.573Z",
+    "cliName": "qualflare-webdriverio",
+    "runId": "fixture-run"
+  },
+  "suites": [
+    {
+      "name": "specs/checkout.spec.mjs",
+      "category": "appium",
+      "duration": 43000000,
+      "cases": [
+        {
+          "id": "specs/checkout.spec.mjs#Checkout pays on the second attempt@chrome",
+          "name": "Checkout pays on the second attempt",
+          "status": "passed",
+          "duration": 43000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.95",
+            "file": "specs/checkout.spec.mjs"
+          },
+          "attempts": [
+            {
+              "attempt": 1,
+              "status": "failed",
+              "duration": 41000000,
+              "startedAt": "2026-10-03T13:45:18.423Z",
+              "message": "first attempt fails",
+              "trace": "Error: first attempt fails\n    at Context.<anonymous> (file:///home/runner/work/qualflare-appium/test/integration/fixtures/wdio-project/specs/checkout.spec.mjs:10:13)"
+            },
+            {
+              "attempt": 2,
+              "status": "passed",
+              "duration": 43000000,
+              "startedAt": "2026-10-03T13:45:18.465Z"
+            }
+          ],
+          "retryCount": 1,
+          "isFlaky": true
+        }
+      ]
+    }
+  ]
+}
