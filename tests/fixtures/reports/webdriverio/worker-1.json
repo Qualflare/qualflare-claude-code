@@ -1,0 +1,56 @@
+{
+  "framework": "webdriverio",
+  "platform": "web",
+  "os": "Linux",
+  "browser": "chrome",
+  "branch": "main",
+  "commit": "0000000",
+  "environment": "production",
+  "language": "en-US",
+  "milestone": null,
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-09-29T17:58:15.407Z",
+    "cliName": "qualflare-webdriverio",
+    "runId": "fixture-run"
+  },
+  "suites": [
+    {
+      "name": "specs/retries.e2e.mjs",
+      "category": "webdriverio",
+      "duration": 202000000,
+      "cases": [
+        {
+          "id": "specs/retries.e2e.mjs#retries fails once, then passes@chrome",
+          "name": "retries fails once, then passes",
+          "status": "passed",
+          "duration": 202000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.58",
+            "file": "specs/retries.e2e.mjs"
+          },
+          "attempts": [
+            {
+              "attempt": 1,
+              "status": "failed",
+              "duration": 364000000,
+              "startedAt": "2026-09-29T17:58:14.738Z",
+              "message": "deliberate first-attempt failure",
+              "trace": "Error: deliberate first-attempt failure\n    at Context.<anonymous> (file:///home/runner/work/qualflare-webdriverio/e2e/specs/retries.e2e.mjs:13:13)"
+            },
+            {
+              "attempt": 2,
+              "status": "passed",
+              "duration": 202000000,
+              "startedAt": "2026-09-29T17:58:15.103Z"
+            }
+          ],
+          "retryCount": 1,
+          "isFlaky": true
+        }
+      ]
+    }
+  ]
+}

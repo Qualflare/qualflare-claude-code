@@ -15,7 +15,7 @@ qualflare-ai/
 │   ├── qf-init/      # First-time setup (detection, test-state.md, hook opt-in)
 │   │   ├── SKILL.md
 │   │   └── references/
-│   │       └── framework-slugs.md   # 27 canonical slugs — keep in sync with Go source
+│   │       └── framework-slugs.md   # 29 canonical slugs — keep in sync with Go source
 │   ├── qf-cover/  # Generate tests for changed source files
 │   ├── qf-run/  # Run tests + qf <identifier> collect
 │   ├── qf-fix/  # Fix failing tests from last run

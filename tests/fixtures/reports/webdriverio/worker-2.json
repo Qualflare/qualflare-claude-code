@@ -1,0 +1,83 @@
+{
+  "framework": "webdriverio",
+  "platform": "web",
+  "os": "Linux",
+  "browser": "chrome",
+  "branch": "main",
+  "commit": "0000000",
+  "environment": "production",
+  "language": "en-US",
+  "milestone": null,
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-09-29T17:58:14.952Z",
+    "cliName": "qualflare-webdriverio",
+    "runId": "fixture-run"
+  },
+  "suites": [
+    {
+      "name": "specs/metadata.e2e.mjs",
+      "category": "webdriverio",
+      "duration": 455000000,
+      "cases": [
+        {
+          "id": "specs/metadata.e2e.mjs#metadata records the author-facing metadata API@chrome",
+          "name": "metadata records the author-facing metadata API",
+          "status": "passed",
+          "duration": 35000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.58",
+            "file": "specs/metadata.e2e.mjs",
+            "plan": "enterprise",
+            "api-key": "••••••"
+          },
+          "labels": [
+            {
+              "name": "team",
+              "value": "platform"
+            }
+          ],
+          "links": [
+            {
+              "url": "https://github.com/Qualflare/qualflare-webdriverio",
+              "type": "custom",
+              "name": "repository"
+            }
+          ],
+          "tags": [
+            "dogfood"
+          ],
+          "description": "Every qualflare.*() call, recorded against the running test.",
+          "priority": "high"
+        },
+        {
+          "id": "specs/metadata.e2e.mjs#metadata nests steps@chrome",
+          "name": "metadata nests steps",
+          "status": "passed",
+          "duration": 420000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.58",
+            "file": "specs/metadata.e2e.mjs"
+          },
+          "steps": [
+            {
+              "name": "outer",
+              "status": "passed",
+              "duration": 419000000
+            },
+            {
+              "name": "inner",
+              "status": "passed",
+              "duration": 419000000,
+              "parentIndex": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

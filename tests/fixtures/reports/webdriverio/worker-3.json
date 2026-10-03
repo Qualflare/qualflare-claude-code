@@ -1,0 +1,38 @@
+{
+  "framework": "webdriverio",
+  "platform": "web",
+  "os": "Linux",
+  "browser": "chrome",
+  "branch": "main",
+  "commit": "0000000",
+  "environment": "production",
+  "language": "en-US",
+  "milestone": null,
+  "metadata": {
+    "version": "0.1.0",
+    "timestamp": "2026-09-29T17:58:17.699Z",
+    "cliName": "qualflare-webdriverio",
+    "runId": "fixture-run"
+  },
+  "suites": [
+    {
+      "name": "specs/screenshots.e2e.mjs",
+      "category": "webdriverio",
+      "duration": 56000000,
+      "cases": [
+        {
+          "id": "specs/screenshots.e2e.mjs#screenshots attaches a screenshot WebdriverIO took@chrome",
+          "name": "screenshots attaches a screenshot WebdriverIO took",
+          "status": "passed",
+          "duration": 56000000,
+          "properties": {
+            "platformName": "mac",
+            "browserName": "chrome",
+            "browserVersion": "154.0.8037.58",
+            "file": "specs/screenshots.e2e.mjs"
+          }
+        }
+      ]
+    }
+  ]
+}

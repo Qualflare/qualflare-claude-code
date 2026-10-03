@@ -82,7 +82,7 @@ Use this brief verbatim for each subagent — substitute `<PACKAGE_DIR>` and `${
 >
 > Your goal: identify all programming languages, test frameworks in use, and test file locations.
 >
-> **What to read:** `package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`, `Gemfile`, `composer.json`, `pom.xml`, `build.gradle`, `.nvmrc`, `.python-version`, and any framework config files (`jest.config.*`, `playwright.config.*`, `cypress.config.*`, `.rspec`, `phpunit.xml`, `sonar-project.properties`).
+> **What to read:** `package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`, `Gemfile`, `composer.json`, `pom.xml`, `build.gradle`, `.nvmrc`, `.python-version`, and any framework config files (`jest.config.*`, `playwright.config.*`, `cypress.config.*`, `wdio.conf.*`, `.rspec`, `phpunit.xml`, `sonar-project.properties`).
 >
 > **Framework slugs:** You MUST map every framework you detect to exactly one of the canonical slugs listed in the file at: `${CLAUDE_PLUGIN_ROOT}/skills/qf-init/references/framework-slugs.md`. Read that file first. Use ONLY slugs from that list. **Exception — Vitest:** report a Vitest package under `jest`, never `vitest` (the reference lists `vitest` only because the CLI accepts it; /qf-run, /qf-fix and /qf-doctor handle Vitest through the `jest` row).
 >

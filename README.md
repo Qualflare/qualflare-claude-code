@@ -63,7 +63,7 @@ If your tests run with any of these, Qualflare has you covered.
 
 **BDD** — `cucumber` · `karate`
 
-**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe` · `maestro` · `xctest` · `espresso` · `detox`
+**End-to-end** — `playwright` · `cypress` · `selenium` · `testcafe` · `maestro` · `xctest` · `espresso` · `detox` · `webdriverio` · `appium`
 
 **API** — `newman` · `k6`
 

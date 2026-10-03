@@ -60,7 +60,7 @@ ${all.map((id) => `\t\t${id},`).join('\n')}
 
 test('parseListFormats reads the real `  - <slug>` lines, hyphenated slugs included', () => {
   const slugs = parseListFormats(LIST_FORMATS);
-  assert.equal(slugs.length, 27);
+  assert.equal(slugs.length, 29);
   assert.ok(slugs.includes('qualflare-json'));
   assert.ok(slugs.includes('vitest'));
   assert.ok(!slugs.some((s) => /testing|generic|bdd/i.test(s)), 'category headers must not be read as slugs');
@@ -81,7 +81,7 @@ test('empty list-formats output is an error, not a pass', () => {
 test('list-formats parity passes when the docs match the real CLI output', () => {
   const r = runWith({ lf: LIST_FORMATS, docs: DOCS(parseListFormats(LIST_FORMATS)) }, ['--list-formats', 'lf', '--docs', 'docs']);
   assert.equal(r.code, 0, r.err);
-  assert.match(r.out, /all 27 CLI slugs match/);
+  assert.match(r.out, /all 29 CLI slugs match/);
 });
 
 test('a CLI slug missing from the docs fails', () => {
