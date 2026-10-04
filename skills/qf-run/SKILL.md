@@ -86,6 +86,7 @@ Every command writes the format the CLI parser for that upload slug reads (`qf v
 | `cucumber` | See note below | `cucumber` | `<R>/cucumber.json` |
 | `webdriverio` | See note below | `webdriverio` | `<R>/webdriverio/` (one JSON per worker) |
 | `appium` | See note below | `appium` | `<R>/appium/` (one JSON per worker) |
+| `flutter` | See note below | `flutter` | `<R>/flutter/flutter-results.json` |
 
 **Remove the previous result before every run.** Each row (and each note below) first deletes that framework's result file (`rm -f`) or result directory (`rm -rf`, then `mkdir -p`). A runner that crashes or hits a configuration error before writing anything would otherwise leave the last run's report in place, and it would upload as this commit's results.
 
@@ -114,6 +115,17 @@ rm -rf "<R>/appium" && mkdir -p "<R>/appium"
 QUALFLARE_RESULTS_DIR="<R>/appium" npx wdio run <the wdio.conf file>
 ```
 and upload the `<R>/appium` directory with `--format appium` (or the reporter's own `resultsDir`, if `wdio.conf` sets one). The run needs its Appium server and device or simulator ready, exactly as the project's own `npx wdio run` does; if it fails before any test starts, report its error and skip this item.
+
+**flutter note:** run from the directory holding `pubspec.yaml`. For the widget and unit suite:
+```bash
+rm -f "<R>/flutter/flutter-results.json" "<R>/flutter/integration-results.json" && mkdir -p "<R>/flutter"
+flutter test --file-reporter json:<R>/flutter/flutter-results.json
+```
+and upload that file with `--format flutter` (requires qf 0.2.0+). Plain `test()` cases in the same run upload too. For `integration_test/`, run it only if `flutter devices --machine` lists a connected device or an already-running emulator/simulator; never boot a device yourself. If one is available:
+```bash
+flutter test integration_test/ -d <id> --file-reporter json:<R>/flutter/integration-results.json
+```
+and upload `integration-results.json` with `--platform android|ios` on `qf collect`, taking the value from that device's `targetPlatform` in the `flutter devices --machine` output (Flutter's output never names the device). If no device is available, skip the integration suite and say so. Reading `qualflare_flutter` data (labels, steps, screenshots) needs qf 0.3.0+.
 
 **junit note:** Check for `pom.xml` (Maven) or `build.gradle`/`build.gradle.kts` (Gradle). Surefire and Gradle write one `TEST-*.xml` file per test class — in a multi-module build, one set per module (`<module>/target/surefire-reports/`, `<sub>/build/test-results/test/`). Collect them recursively into a directory, never onto a single file path, and prefix each file with its module path so two modules' `TEST-com.acme.FooTest.xml` do not overwrite each other.
 

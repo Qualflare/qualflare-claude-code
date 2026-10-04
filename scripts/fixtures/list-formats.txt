@@ -29,6 +29,7 @@ UI / E2E / Mobile Testing:
   - espresso
   - webdriverio
   - appium
+  - flutter
 
 API Testing:
   - newman
