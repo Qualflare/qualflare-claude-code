@@ -36,6 +36,7 @@ These are the **only valid slugs** accepted by `qf <identifier> collect --format
 | `detox` | E2E | `.detoxrc.{js,json}`, `detox.config.*`, a `"detox"` key in `package.json`, `detox` in deps/devDeps | React Native E2E. Detox drives Jest, so its report is a Jest report; `--format detox` tells the CLI to look for Detox artifacts. Prefer `detox` over `jest` for the Detox suite itself (usually `e2e/`). |
 | `webdriverio` | E2E | `wdio.conf.{js,ts,mjs,cjs}`, `@wdio/cli` in deps/devDeps | WebdriverIO, web or mobile. Uploads come from the native reporter `@qualflare/webdriverio` (the reporter in `wdio.conf`; from 0.2.0 no service is needed). If the capabilities in `wdio.conf` name `platformName: 'iOS'`/`'Android'` or `appium:*` keys, record `appium` instead |
 | `appium` | E2E | a `wdio.conf.*` whose capabilities name `platformName` iOS/Android or `appium:automationName`, `appium` or `@wdio/appium-service` in deps/devDeps | Appium through WebdriverIO, via the native reporter `@qualflare/appium`. Appium driven from Java or Python is recorded under that runner's slug (`testng`, `junit`, `python`), not `appium` |
+| `flutter` | E2E | `pubspec.yaml` with `flutter_test` or `integration_test` in `dev_dependencies` | Flutter widget and `integration_test` suites upload via `flutter test --file-reporter json:<file>`; plain `test()` cases in the same run upload too. Suggest the optional `qualflare_flutter` package (`flutter pub add --dev qualflare_flutter`) for labels, steps and screenshots |
 | `newman` | API | `*.postman_collection.json`, `newman` in deps or scripts | Newman is the Postman CLI runner |
 | `k6` | API | `*.k6.js`, `k6/` directory, `import { ... } from 'k6'` in JS files | |
 | `zap` | Security | `zap-report.{xml,json,html}`, `zap.yaml`, `.zap/` directory | OWASP ZAP (Zed Attack Proxy) |
@@ -76,6 +77,7 @@ Every cell in the second column is either a comma-separated list of backticked g
 | `detox` | `e2e/**/*.test.{js,ts}`, `e2e/**/*.e2e.{js,ts}` |
 | `webdriverio` | `test/specs/**/*.{js,ts,mjs}`, `**/*.e2e.{js,ts,mjs}` |
 | `appium` | `test/specs/**/*.{js,ts,mjs}`, `**/*.e2e.{js,ts,mjs}` |
+| `flutter` | `test/**/*_test.dart`, `integration_test/**/*_test.dart` |
 | `newman` | `**/*.postman_collection.json` |
 | `k6` | `**/*.k6.js`, `**/k6/**/*.js` |
 | `zap` | `**/zap-report.{xml,json,html}` |

@@ -32,6 +32,8 @@ export const PARSER_FORMAT = {
   // file per WebdriverIO worker.
   webdriverio: 'json',
   appium: 'json',
+  // flutter test --file-reporter json: output.
+  flutter: 'json',
 };
 
 // Result paths that are directories (one report per spec / per test class).

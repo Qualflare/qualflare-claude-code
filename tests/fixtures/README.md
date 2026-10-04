@@ -22,6 +22,7 @@ exact /qf-run command line was executed.
 - `junit/` holds two Surefire-style `TEST-*.xml` files, one per test class. It does
   not model the module-prefixed names (`core__TEST-…xml`) /qf-run gives files
   collected from a multi-module build; the CLI parses by content, not by name.
+- `flutter.json` is `flutter test --file-reporter json:…` output (Flutter 3.x) for two widget tests, one failing on a missing label, and one plain `test()`.
 - `cucumber.json` is `cucumber-js --format json:…` output (@cucumber/cucumber
   13.2.1) for one passing and one failing scenario, so the failing step's
   `result.error_message` is present. `scripts/qf-fix-fields.test.mjs` requires
